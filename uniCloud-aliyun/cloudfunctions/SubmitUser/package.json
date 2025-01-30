@@ -1,0 +1,7 @@
+{
+  "name": "submitUserInfo",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

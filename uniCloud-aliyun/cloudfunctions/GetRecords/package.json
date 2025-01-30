@@ -1,0 +1,7 @@
+{
+  "name": "GetRecord",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

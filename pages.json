@@ -1,0 +1,266 @@
+{
+	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+		{
+			"path": "pages/Start/Start",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarBackgroundColor": "#fcfcfc",
+				"backgroundColor": "#fcfcfc",
+				"app-plus": {
+					"titleNView": false,
+					"animationType": "fade-in",
+					"background": "transparent"
+				}
+			}
+		},
+		{
+			"path" : "pages/HomePage/HomePage",
+			"style" : 
+			{
+				"navigationBarTitleText" : "首页"
+			}
+		},
+		{
+			"path" : "pages/EvaluationPage/EvaluationPage",
+			"style" : 
+			{
+				"navigationBarTitleText" : "测评"
+			}
+		},
+		{
+			"path" : "pages/MyPage/MyPage",
+			"style" : 
+			{
+				"navigationBarTitleText" : "我的"
+			}
+		},
+		{
+			"path" : "pages/EvaluationHistoryPage/EvaluationHistoryPage",
+			"style" : 
+			{
+				"navigationBarTitleText" : "测评记录"
+			}
+		},
+		{
+			"path" : "pages/SystemIntro/SystemIntro",
+			"style" : 
+			{
+				"navigationBarTitleText" : "系统介绍"
+			}
+		},
+		{
+			"path" : "pages/Login/Login",
+			"style" : 
+			{
+				"navigationBarTitleText" : "登录"
+			}
+		},
+		{
+			"path" : "pages/UserData/UserData",
+			"style" : 
+			{
+				"navigationBarTitleText" : "个人信息"
+			}
+		},
+		{
+			"path" : "pages/VerifyCode/VerifyCode",
+			"style" : 
+			{
+				"navigationBarTitleText" : "验证码"
+			}
+		},
+		{
+			"path" : "pages/WechatLogin/WechatLogin",
+			"style" : 
+			{
+				"navigationBarTitleText" : "微信登陆"
+			}
+		},
+		{
+			"path" : "pages/register/register",
+			"style" : 
+			{
+				"navigationBarTitleText" : "注册"
+			}
+		}
+	,{
+    "path": "uni_modules/uni-id-pages/pages/register/register",
+    "style": {
+        "navigationBarTitleText": "注册"
+    }
+}
+,{
+    "path": "uni_modules/uni-id-pages/pages/login/login-withoutpwd",
+    "style": {
+        "navigationBarTitleText": "登录"
+    }
+}
+,{
+    "path": "uni_modules/uni-id-pages/pages/login/login-withpwd",
+    "style": {
+        "navigationBarTitleText": "账号密码登录"
+    }
+}
+,{
+    "path": "uni_modules/uni-id-pages/pages/login/login-smscode",
+    "style": {
+        "navigationBarTitleText": "手机验证码登录"
+    }
+}
+,{
+    "path": "uni_modules/uni-id-pages/pages/userinfo/userinfo",
+    "style": {
+        "navigationBarTitleText": "个人资料"
+    }
+}
+,{
+    "path": "uni_modules/uni-id-pages/pages/userinfo/bind-mobile/bind-mobile",
+    "style": {
+        "navigationBarTitleText": "绑定手机号码"
+    }
+}
+,{
+    "path": "uni_modules/uni-id-pages/pages/userinfo/cropImage/cropImage",
+    "style": {
+        "navigationBarTitleText": ""
+    }
+}
+,{
+    "path": "uni_modules/uni-id-pages/pages/register/register-by-email",
+    "style": {
+        "navigationBarTitleText": "邮箱验证码注册"
+    }
+}
+,{
+    "path": "uni_modules/uni-id-pages/pages/retrieve/retrieve",
+    "style": {
+        "navigationBarTitleText": "重置密码"
+    }
+}
+,{
+    "path": "uni_modules/uni-id-pages/pages/retrieve/retrieve-by-email",
+    "style": {
+        "navigationBarTitleText": "通过邮箱重置密码"
+    }
+}
+,{
+    "path": "uni_modules/uni-id-pages/pages/common/webview/webview",
+    "style": {
+        "enablePullDownRefresh": false,
+        "navigationBarTitleText": ""
+    }
+}
+,{
+    "path": "uni_modules/uni-id-pages/pages/userinfo/change_pwd/change_pwd",
+    "style": {
+        "enablePullDownRefresh": false,
+        "navigationBarTitleText": "修改密码"
+    }
+}
+,{
+    "path": "uni_modules/uni-id-pages/pages/register/register-admin",
+    "style": {
+        "enablePullDownRefresh": false,
+        "navigationBarTitleText": "注册管理员账号"
+    }
+}
+,{
+    "path": "uni_modules/uni-id-pages/pages/userinfo/set-pwd/set-pwd",
+    "style": {
+        "enablePullDownRefresh": false,
+        "navigationBarTitleText": "设置密码"
+    }
+}
+,{
+    "path": "uni_modules/uni-id-pages/pages/userinfo/deactivate/deactivate",
+    "style": {
+        "navigationBarTitleText": "注销账号"
+    }
+}
+,{
+    "path": "uni_modules/uni-id-pages/pages/userinfo/realname-verify/realname-verify",
+    "style": {
+        "enablePullDownRefresh": false,
+        "navigationBarTitleText": "实名认证"
+    }
+},
+{
+	"path" : "pages/Feedback/Feedback",
+	"style" : 
+	{
+		"navigationBarTitleText" : "反馈"
+	}
+},
+{
+	"path" : "pages/Confirm/Confirm",
+	"style" : 
+	{
+		"navigationBarTitleText" : "确认"
+	}
+},
+{
+	"path" : "pages/Loading/Loading",
+	"style" : 
+	{
+		"navigationBarTitleText" : ""
+	}
+},
+{
+	"path" : "pages/Report/Report",
+	"style" : 
+	{
+		"navigationBarTitleText" : "测评报告"
+	}
+},
+{
+	"path" : "pages/Instruction/Instruction",
+	"style" : 
+	{
+		"navigationBarTitleText" : "教程"
+	}
+},
+{
+	"path" : "pages/Metric/Metric",
+	"style" : 
+	{
+		"navigationBarTitleText" : "指标设置"
+		
+	}
+}
+],
+	"tabBar": {
+		"list":[
+			{
+				"pagePath": "pages/HomePage/HomePage",
+				"text":"首页",
+				"iconPath": "/static/home.png",
+				"selectedIconPath": "/static/home-active.png"
+			},
+			{
+				"pagePath": "pages/Instruction/Instruction",
+				"text": "教程",
+				"iconPath": "/static/assessment-alt.png",
+				"selectedIconPath": "/static/assessment-active.png"
+			},
+			{
+				"pagePath": "pages/EvaluationHistoryPage/EvaluationHistoryPage",
+				"text":"测评记录",
+				"iconPath": "/static/list.png",
+				"selectedIconPath": "/static/list-active.png"
+			},
+			{
+				"pagePath": "pages/MyPage/MyPage",
+				"text":"我的",
+				"iconPath": "/static/user.png",
+				"selectedIconPath": "/static/user-active.png"
+			}
+		]
+	},
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "uni-app",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	},
+	"uniIdRouter": {}
+}

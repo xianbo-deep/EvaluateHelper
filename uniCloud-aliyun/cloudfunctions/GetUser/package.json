@@ -1,0 +1,7 @@
+{
+  "name": "GetAvatar",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

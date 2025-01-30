@@ -1,0 +1,7 @@
+{
+  "name": "SubmitMertic",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}
