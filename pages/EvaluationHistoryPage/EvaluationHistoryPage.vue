@@ -8,7 +8,8 @@
       <view 
         class="record-card" 
         v-for="(record, index) in evaluationRecords" 
-        :key="index"
+        :key="record.recordId" 
+        @tap="goToReport(record.recordId)"
         :style="{ animationDelay: index * 0.1 + 's' }"
       >
         <!-- 日期和时间 -->
@@ -45,10 +46,8 @@
 
         <!-- 底部信息 -->
         <view class="record-footer">
-          <view class="tag" :class="record.status === '已完成' ? 'completed' : 'ongoing'">
-            {{record.status}}
-          </view>
-          <text class="duration">用时 {{record.duration}}</text>
+          <view class="tag completed">已完成</view>
+          <text class="duration">用时 {{record.duration}}分钟</text>
         </view>
       </view>
     </scroll-view>
@@ -57,52 +56,89 @@
 
 <script>
 import { store } from '/uni_modules/uni-id-pages/common/store.js';
+
 export default {
   data() {
     return {
-      evaluationRecords: [
-        {
-          date: '2024-01-23',
-          time: '14:30',
-          score: 92,
-          duration: '45分钟',
-          status: '已完成',
-          dimensions: [
-            { name: '专业能力', score: 95 },
-            { name: '沟通表达', score: 88 },
-            { name: '逻辑思维', score: 92 },
-            { name: '学习能力', score: 90 }
-          ]
-        },
-        {
-          date: '2024-01-20',
-          time: '10:15',
-          score: 88,
-          duration: '38分钟',
-          status: '已完成',
-          dimensions: [
-            { name: '专业能力', score: 85 },
-            { name: '沟通表达', score: 90 },
-            { name: '逻辑思维', score: 87 },
-            { name: '学习能力', score: 89 }
-          ]
-        },
-        // 可以添加更多记录
-      ]
-    }
+      evaluationRecords: [], // 记录数据
+    };
   },
-  onShow(){
-	  if(!store.hasLogin){
-		  uni.showToast({
-		  	title: '请先登录',
-			icon: 'none'
-		  });
-		  uni.switchTab({
-		  	url: '/pages/MyPage/MyPage'
-		  });
-	  }
+  
+  onShow() {
+    // 检查用户是否已登录
+    if (!store.hasLogin) {
+      uni.showToast({ title: '请先登录', icon: 'none' });
+      uni.switchTab({ url: '/pages/MyPage/MyPage' });
+      return;
+    }
+    
+    // 获取测评记录
+    this.fetchEvaluationRecords();
+  },
+
+  methods: {
+    // 获取测评记录
+    async fetchEvaluationRecords() {
+      try {
+        uni.showLoading({ title: '加载中' });
+    
+        const userId = store.userInfo._id;
+        
+        const res = await uniCloud.callFunction({
+          name: 'GetRecords',
+          data: { userId }
+        });
+    
+        if (!res.result.success) {
+          uni.showToast({ title: '获取数据失败', icon: 'none' });
+          return;
+        }
+    
+        if (res.result.data.length === 0) {
+          this.evaluationRecords = [];
+          uni.showToast({ title: '暂无测评记录', icon: 'none' });
+          return;
+        }
+    
+        this.evaluationRecords = res.result.data.map(item => ({
+          recordId: item.recordId,
+          date: this.formatDate(item.assessmentTime),
+          time: this.formatTime(item.assessmentTime),
+          score: item.score ?? '未评分',
+          duration: item.duration || '未知',
+          dimensions: item.dimensions || [] //  直接获取数组
+        }));
+		console.log("Formatted Records:", this.evaluationRecords);
+
+    
+      } catch (error) {
+        console.error('获取测评记录失败:', error);
+        uni.showToast({ title: '数据加载失败', icon: 'none' });
+      } finally {
+        uni.hideLoading();
+      }
+    },
+
+    // 点击跳转到测评报告详情
+    goToReport(recordId) {
+      uni.navigateTo({
+        url: `/pages/details/details?recordId=${recordId}`
+      });
+    },
+
+    // 格式化日期
+    formatDate(timestamp) {
+      const date = new Date(timestamp);
+      return date.toISOString().split('T')[0];
+    },
+
+    // 格式化时间
+    formatTime(timestamp) {
+      const date = new Date(timestamp);
+      return date.toTimeString().split(' ')[0];
+    }
   }
-}
+};
 </script>
 
 <style>
@@ -248,11 +284,6 @@ export default {
 .completed {
   background: rgba(34, 197, 94, 0.1);
   color: #16a34a;
-}
-
-.ongoing {
-  background: rgba(99, 102, 241, 0.1);
-  color: #6366f1;
 }
 
 .duration {

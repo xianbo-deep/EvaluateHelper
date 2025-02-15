@@ -1,0 +1,295 @@
+
+.container {
+  min-height: 100vh;
+  background: #F8FAFC;
+  position: relative;
+  overflow: hidden;
+}
+.background {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+.gradient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(1.875rem);
+}
+.gradient-orb:nth-child(1) {
+  width: 18.75rem;
+  height: 18.75rem;
+  background: linear-gradient(135deg, rgba(91, 33, 182, 0.1), rgba(67, 56, 202, 0.05));
+  top: -6.25rem;
+  right: -3.125rem;
+  animation: float 20s infinite alternate;
+}
+.gradient-orb:nth-child(2) {
+  width: 15.625rem;
+  height: 15.625rem;
+  background: linear-gradient(225deg, rgba(99, 102, 241, 0.08), rgba(79, 70, 229, 0.05));
+  bottom: -4.6875rem;
+  left: -3.125rem;
+  animation: float 15s infinite alternate-reverse;
+}
+.content {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 0.9375rem;
+  gap: 1.25rem;
+}
+
+/* 总分区域新样式 */
+.score-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeInUp 0.8s ease-out;
+  padding: 1.25rem 0;
+}
+.total-score {
+  margin-bottom: 0.9375rem;
+}
+.score-circle-wrapper {
+  position: relative;
+  padding: 0.46875rem;
+}
+.score-circle-outer {
+  width: 7.5rem;
+  height: 7.5rem;
+  background: linear-gradient(135deg, rgba(255, 182, 193, 0.2), rgba(173, 216, 230, 0.2));
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 0.9375rem rgba(173, 216, 230, 0.3);
+  position: relative;
+  animation: pulse 3s ease-in-out infinite;
+}
+.score-circle-inner {
+  width: 6.25rem;
+  height: 6.25rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: inset 0 0 0.625rem rgba(173, 216, 230, 0.2);
+}
+.score-content {
+  text-align: center;
+  animation: fadeIn 1s ease-out;
+}
+.score-number {
+  font-size: 2.75rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  -webkit-background-clip: text;
+  color: transparent;
+  line-height: 1.2;
+  margin-bottom: 0.125rem;
+}
+.score-label {
+  font-size: 0.875rem;
+  color: rgba(30, 41, 59, 0.7);
+  font-weight: 500;
+}
+.score-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+.score-date {
+  font-size: 0.75rem;
+  color: rgba(30, 41, 59, 0.5);
+}
+
+
+/* 其他样式保持不变 */
+.metrics-section {
+  background: rgba(255, 255, 255, 0.8);
+  -webkit-backdrop-filter: blur(0.3125rem);
+          backdrop-filter: blur(0.3125rem);
+  border-radius: 0.9375rem;
+  padding: 0.9375rem;
+  animation: fadeInUp 0.8s ease-out 0.2s backwards;
+  border: 0.03125rem solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.05);
+}
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1E293B;
+  margin-bottom: 0.9375rem;
+}
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.625rem;
+}
+.metric-card {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 0.625rem;
+  padding: 0.625rem;
+  border: 0.03125rem solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 0.0625rem 0.25rem rgba(0, 0, 0, 0.03);
+}
+.metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.46875rem;
+}
+.metric-name {
+  font-size: 0.875rem;
+  color: #1E293B;
+}
+.metric-score {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1E293B;
+}
+.metric-bar-bg {
+  height: 0.25rem;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 0.125rem;
+  overflow: hidden;
+}
+.metric-bar {
+  height: 100%;
+  border-radius: 0.125rem;
+  transition: width 1s ease-out;
+}
+.evaluation-section {
+  animation: fadeInUp 0.8s ease-out 0.4s backwards;
+}
+.evaluation-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+.evaluation-card {
+  background: rgba(255, 255, 255, 0.8);
+  -webkit-backdrop-filter: blur(0.3125rem);
+          backdrop-filter: blur(0.3125rem);
+  border-radius: 0.625rem;
+  padding: 0.78125rem;
+  border: 0.03125rem solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.05);
+}
+.evaluation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.625rem;
+}
+.evaluation-aspect {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #1E293B;
+}
+.evaluation-tag {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.9375rem;
+  font-size: 0.75rem;
+}
+.evaluation-tag.excellent {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366F1;
+}
+.evaluation-tag.good {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8B5CF6;
+}
+.evaluation-content {
+  color: #1E293B;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.suggestion-box {
+  margin-top: 0.625rem;
+  padding: 0.625rem;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 0.5rem;
+}
+.suggestion-title {
+  font-size: 0.8125rem;
+  color: rgba(30, 41, 59, 0.7);
+  margin-bottom: 0.3125rem;
+}
+.suggestion-text {
+  font-size: 0.8125rem;
+  color: #1E293B;
+  line-height: 1.6;
+}
+.summary-section {
+  animation: fadeInUp 0.8s ease-out 0.6s backwards;
+}
+.summary-card {
+  background: rgba(255, 255, 255, 0.8);
+  -webkit-backdrop-filter: blur(0.3125rem);
+          backdrop-filter: blur(0.3125rem);
+  border-radius: 0.625rem;
+  padding: 0.78125rem;
+  border: 0.03125rem solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.05);
+}
+.summary-text {
+  font-size: 0.875rem;
+  color: #1E293B;
+  line-height: 1.6;
+}
+@keyframes float {
+0% {
+    transform: translate(0, 0);
+}
+100% {
+    transform: translate(0.9375rem, -0.9375rem);
+}
+}
+@keyframes fadeInUp {
+from {
+    opacity: 0;
+    transform: translateY(0.625rem);
+}
+to {
+    opacity: 1;
+    transform: translateY(0);
+}
+}
+@keyframes fadeIn {
+from {
+    opacity: 0;
+}
+to {
+    opacity: 1;
+}
+}
+@keyframes pulse {
+0% {
+    transform: scale(1);
+    box-shadow: 0 0 0.9375rem rgba(173, 216, 230, 0.3);
+}
+50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 1.25rem rgba(173, 216, 230, 0.4);
+}
+100% {
+    transform: scale(1);
+    box-shadow: 0 0 0.9375rem rgba(173, 216, 230, 0.3);
+}
+}
+@keyframes glow {
+0% {
+    box-shadow: 0 0 0.625rem rgba(99, 102, 241, 0.2);
+}
+100% {
+    box-shadow: 0 0 1.25rem rgba(99, 102, 241, 0.3);
+}
+}

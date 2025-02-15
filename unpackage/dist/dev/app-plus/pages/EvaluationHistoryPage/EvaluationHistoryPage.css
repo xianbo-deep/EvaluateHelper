@@ -123,10 +123,6 @@
   background: rgba(34, 197, 94, 0.1);
   color: #16a34a;
 }
-.ongoing {
-  background: rgba(99, 102, 241, 0.1);
-  color: #6366f1;
-}
 .duration {
   font-size: 0.75rem;
   color: #64748b;

@@ -77,7 +77,7 @@ export default {
   },
   onShow(){
 	const userId = store.userInfo._id; 
-    const cachedMetrics = uni.getStorageSync('${userId_}metricData');
+    const cachedMetrics = uni.getStorageSync('${userId}_metricData');
     if (cachedMetrics && cachedMetrics.length > 0) {
       this.metrics = cachedMetrics.map(item => ({
         name: item.name,
@@ -96,14 +96,64 @@ export default {
 	return true;
   },
   methods: {
-    handleButtonClick() {
-      if (this.hasMetrics) {
-        uni.navigateTo({
-          url: '/pages/Loading/Loading'
+    async handleButtonClick() {
+      try {
+        const userId = store.userInfo._id;
+        const recordId = uni.getStorageSync('${userId}_recordId');
+        const metricdata = uni.getStorageSync('${userId}_metricData');
+		console.log(metricdata)
+        // 调用云函数更新评测时间
+        const { result } = await uniCloud.callFunction({
+          name: 'UpdateAssessment',
+          data: {
+            userId,
+            recordId,
+            timestamp: Date.now()
+          }
         });
-      } else {
-        uni.navigateTo({
-          url: '/pages/Metric/Metric'
+    
+        if (result.success) {
+          if (this.hasMetrics) {
+            // 如果有指标数据，先跳转到加载页面
+            uni.showLoading({
+              title: '加载中...'
+            });
+            
+            setTimeout(() => {
+              uni.hideLoading();
+              uni.navigateTo({
+                url: '/pages/Loading/Loading',
+                fail: (err) => {
+                  uni.showToast({
+                    title: '跳转失败，请重试',
+                    icon: 'none'
+                  });
+                }
+              });
+            }, 1000);
+          } else {
+            // 如果没有指标数据，跳转到指标页面
+            uni.navigateTo({
+              url: '/pages/Metric/Metric',
+              fail: (err) => {
+                uni.showToast({
+                  title: '跳转失败，请重试',
+                  icon: 'none'
+                });
+              }
+            });
+          }
+        } else {
+          uni.showToast({
+            title: result.message || '操作失败，请重试',
+            icon: 'none'
+          });
+        }
+      } catch (error) {
+        console.error('操作失败:', error);
+        uni.showToast({
+          title: '操作失败，请重试',
+          icon: 'none'
         });
       }
     },

@@ -73,6 +73,8 @@
   position: relative;
   overflow: hidden;
   padding: 0.75rem;
+  border: 0.0625rem solid transparent;
+  box-sizing: border-box;
 }
 .indicator-content {
   height: 100%;
@@ -105,7 +107,7 @@
   opacity: 0.05;
 }
 .indicator-selected {
-  background: #ebf5ff;
+  background-color: #ebf5ff !important;
   border: 0.0625rem solid #3b82f6;
 }
 .indicator-selected .indicator-name {

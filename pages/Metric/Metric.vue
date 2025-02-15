@@ -1,6 +1,5 @@
 <template>
   <view class="container">
-    <!-- 固定顶部 -->
     <view class="header">
       <view class="stats-box">
         <view class="left-box">
@@ -15,7 +14,6 @@
       </view>
     </view>
     
-    <!-- 指标列表 -->
     <view class="content">
       <view class="indicator-list">
         <view 
@@ -36,7 +34,6 @@
       </view>
     </view>
 
-    <!-- 确认按钮 -->
     <view class="footer">
       <button 
         class="confirm-btn" 
@@ -56,11 +53,7 @@ export default {
   data() {
     return {
       selectedIndicators: [],
-      indicators: Array.from({ length: 20 }, (_, index) => ({
-        id: index + 1,
-        name: `指标${index + 1}`,
-        description: `描述${index + 1}`
-      })),
+      indicators: [],
       minSelect: 7,
       maxSelect: 9
     }
@@ -70,34 +63,57 @@ export default {
       return this.selectedIndicators.length < this.maxSelect
     }
   },
-  onShow() {
-	const userId = store.userInfo._id;
-    // 尝试从本地缓存获取已选指标
-    const cachedMetrics = uni.getStorageSync('${userId}_metricData');
-    if (cachedMetrics && cachedMetrics.length > 0) {
-      this.selectedIndicators = cachedMetrics;
-	  console.log(cachedMetrics);
-    } else {
-      // 如果没有缓存，设置默认选中指标1-7
-      this.selectedIndicators = this.indicators.slice(0, 7);
-      // 保存默认选择到本地缓存
-      uni.setStorageSync('${userId}_metricData', this.selectedIndicators);
+  async onLoad() {
+    try {
+      uni.showLoading({
+        title: '加载中'
+      })
+      const { result } = await uniCloud.callFunction({
+        name: 'GetMetrics'
+      });
+      
+      if (result.success) {
+        this.indicators = result.data;
+        uni.hideLoading();
+        
+        const userId = store.userInfo._id;
+        const cachedMetrics = uni.getStorageSync(`${userId}_metricData`);
+        
+        if (cachedMetrics && cachedMetrics.length > 0) {
+          this.selectedIndicators = this.indicators.filter(indicator => 
+            cachedMetrics.some(cached => cached.id === indicator.id)
+          );
+        } else {
+          this.selectedIndicators = this.indicators.slice(0, 7);
+          uni.setStorageSync(`${userId}_metricData`, this.selectedIndicators);
+        }
+      } else {
+        uni.showToast({
+          title: '获取指标失败',
+          icon: 'none'
+        });
+      }
+    } catch (error) {
+      console.error('获取指标失败:', error);
+      uni.showToast({
+        title: '系统错误，请重试',
+        icon: 'none'
+      });
     }
   },
   methods: {
     isSelected(indicator) {
-      return this.selectedIndicators.some(i => i.id === indicator.id)
+      return this.selectedIndicators.some(selected => selected.id === indicator.id);
     },
     toggleIndicator(indicator) {
-      const index = this.selectedIndicators.findIndex(i => i.id === indicator.id)
+      const index = this.selectedIndicators.findIndex(selected => selected.id === indicator.id);
       if (index > -1) {
-        this.selectedIndicators.splice(index, 1)
-      } else {
-        this.selectedIndicators.push(indicator)
+        this.selectedIndicators.splice(index, 1);
+      } else if (this.canSelect) {
+        this.selectedIndicators.push({...indicator});
       }
     },
     submitMetric() {
-      // 显示加载提示
       uni.showLoading({
         title: '提交中',
       });
@@ -105,19 +121,15 @@ export default {
       const userId = store.userInfo._id;
       const count = this.selectedIndicators.length;
     
-      // 校验选中的指标数量是否符合要求
       if (count < this.minSelect || count > this.maxSelect) {
         uni.showToast({
           title: `请选择${this.minSelect}-${this.maxSelect}个指标`,
           icon: 'none',
         });
-    
-        // 隐藏加载提示
         uni.hideLoading();
         return;
       }
     
-      // 准备提交的数据
       const selectedData = this.selectedIndicators.map(indicator => ({
         id: indicator.id,
         name: indicator.name,
@@ -130,15 +142,12 @@ export default {
         timestamp: Date.now(),
       };
     
-      // 调用云函数提交数据
       uniCloud.callFunction({
         name: 'SubmitMetric',
         data: data,
       })
         .then(res => {
-          // 判断提交结果
           if (res.result.success) {
-            // 成功
             uni.setStorageSync(`${userId}_metricData`, selectedData);
             uni.showToast({
               title: res.result.message,
@@ -148,7 +157,6 @@ export default {
               url: '/pages/MyPage/MyPage',
             });
           } else {
-            // 失败提示
             uni.showToast({
               title: res.result.message || '提交失败',
               icon: 'none',
@@ -156,7 +164,6 @@ export default {
           }
         })
         .catch(err => {
-          // 捕获错误并提示
           console.error('提交失败：', err);
           uni.showToast({
             title: '系统错误，请稍后重试',
@@ -164,7 +171,6 @@ export default {
           });
         })
         .finally(() => {
-          // 确保隐藏加载提示
           uni.hideLoading();
         });
     }
@@ -258,6 +264,8 @@ export default {
   position: relative;
   overflow: hidden;
   padding: 24rpx;
+  border: 2rpx solid transparent;
+  box-sizing: border-box;
 }
 
 .indicator-content {
@@ -296,7 +304,7 @@ export default {
 }
 
 .indicator-selected {
-  background: #ebf5ff;
+  background-color: #ebf5ff !important;
   border: 2rpx solid #3b82f6;
 }
 

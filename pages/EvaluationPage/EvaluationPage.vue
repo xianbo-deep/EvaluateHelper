@@ -124,47 +124,65 @@ export default {
     },
 
     async submitForm() {
-      try {
-        if (!this.formData.LocalfileUrl) {
-          uni.showToast({ title: '请先上传视频', icon: 'none' });
-          return;
+          try {
+            if (!this.formData.LocalfileUrl) {
+              uni.showToast({ title: '请先上传视频', icon: 'none' });
+              return;
+            }
+            uni.showLoading({ title: '提交中' });
+            const userId = store.userInfo._id;
+            
+            const uploadResult = await uniCloud.uploadFile({
+              filePath: this.formData.LocalfileUrl,
+              cloudPath: `Video/${userId}-${Date.now()}.mp4`,
+              cloudPathAsRealPath: true
+            });
+            
+            this.formData.fileUrl = uploadResult.fileID
+            const { fileList } = await uniCloud.getTempFileURL({
+              fileList: [this.formData.fileUrl]
+            });
+            const publicFileUrl = fileList[0].tempFileURL;
+            console.log(publicFileUrl)
+            const ans = await uniCloud.callFunction({
+                name: "aliFileTrans",
+                data: {fileLink: publicFileUrl}
+            })
+            if(ans.result.code === 0){
+                // 获取所有句子的文本并合并
+                const allText = ans.result.data.Sentences.map(sentence => sentence.Text).join(' ');
+                console.log('所有句子:', allText);
+                
+                const res = await uniCloud.callFunction({
+                  name: 'SubmitEvaData',
+                  data: {
+                    userId,
+                    name: this.formData.name,
+                    fileUrl: this.formData.fileUrl,
+                    timestamp: Date.now(),
+                    fileformat: this.formData.LocalfileUrl.split('.').pop().toLowerCase(),
+                    text: allText  // 这里传入合并后的文本
+                  },
+                });
+                
+                if (res.result.success) {
+                  uni.setStorageSync('${userId}_recordId',res.result.data.recordId);
+                  uni.showToast({ title: '已提交', icon: 'success' });
+                  uni.navigateTo({ url: '/pages/Confirm/Confirm' });
+                } else {
+                  uni.showToast({ title: res.result.message || '提交失败', icon: 'none' });
+                }
+            }else{
+                uni.showToast({ title: ans.result.msg });
+            }
+           
+          } catch (error) {
+            console.error('提交失败:', error);
+            uni.showToast({ title: '系统错误，请稍后重试', icon: 'none' });
+          } finally {
+            uni.hideLoading();
+          }
         }
-        uni.showLoading({ title: '提交中' });
-
-        const userId = store.userInfo._id;
-
-        const uploadResult = await uniCloud.uploadFile({
-          filePath: this.formData.LocalfileUrl,
-          cloudPath: `Video/${userId}-${Date.now()}.mp4`,
-          cloudPathAsRealPath: true
-        });
-
-        this.formData.fileUrl = uploadResult.fileID;
-
-        const res = await uniCloud.callFunction({
-          name: 'SubmitEvaData',
-          data: {
-            userId,
-            name: this.formData.name,
-            fileUrl: this.formData.fileUrl,
-            timestamp: Date.now(),
-            fileformat: this.formData.LocalfileUrl.split('.').pop().toLowerCase(),
-          },
-        });
-
-        if (res.result.success) {
-          uni.showToast({ title: '已提交', icon: 'success' });
-          uni.navigateTo({ url: '/pages/Confirm/Confirm' });
-        } else {
-          uni.showToast({ title: res.result.message || '提交失败', icon: 'none' });
-        }
-      } catch (error) {
-        console.error('提交失败:', error);
-        uni.showToast({ title: '系统错误，请稍后重试', icon: 'none' });
-      } finally {
-        uni.hideLoading();
-      }
-    }
   }
 }
 </script>

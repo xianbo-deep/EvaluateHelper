@@ -83,7 +83,7 @@ export default {
         type: this.feedbackTypes[this.selectedTypeIndex], // 反馈类型
         content: this.feedbackContent, // 反馈内容
         contact: this.contactInfo, // 联系方式
-        timestamp: new Date().toISOString(), // 提交时间
+        timestamp: Date.now(), // 提交时间
       };
 
       try {

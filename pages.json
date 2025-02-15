@@ -42,10 +42,10 @@
 			}
 		},
 		{
-			"path" : "pages/SystemIntro/SystemIntro",
+			"path" : "pages/details/details",
 			"style" : 
 			{
-				"navigationBarTitleText" : "系统介绍"
+				"navigationBarTitleText" : "详细报告"
 			}
 		},
 		{
@@ -225,6 +225,13 @@
 	{
 		"navigationBarTitleText" : "指标设置"
 		
+	}
+},
+{
+	"path" : "pages/EvaluationRecord/EvaluationRecord",
+	"style" : 
+	{
+		"navigationBarTitleText" : "测评报告"
 	}
 }
 ],

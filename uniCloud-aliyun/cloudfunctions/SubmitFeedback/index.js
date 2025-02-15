@@ -13,10 +13,10 @@ exports.main = async (event, context) => {
 		const data = {
 			feedbackId:nextId,
 			userId: userid,
-			submittime: timestamp,
+			submitTime: timestamp,
 			content: content,
 			status: 'pending',
-			processtime: '',
+			processTime: '',
 			adminId: '',
 			contact:contact,
 			feedbacktype:type
