@@ -1,0 +1,7 @@
+{
+  "name": "getExchangeRecords",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

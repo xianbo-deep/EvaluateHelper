@@ -132,8 +132,10 @@ export default {
 	  }
   },
   async onLoad(){
-   const cachedUserInfo = uni.getStorageSync('${userId}_userdata');
-   const cachedAvatar = uni.getStorageSync('${userId}_avatar');
+	  const userId = store.userInfo._id;
+   const cachedUserInfo = uni.getStorageSync(`${userId}_userdata`);
+   console.log(cachedUserInfo)
+   const cachedAvatar = uni.getStorageSync(`${userId}_avatar`);
    if (cachedUserInfo || cachedAvatar) {
        this.formData = cachedUserInfo; // 如果缓存存在，直接使用
 	   this.avatar = cachedAvatar;
@@ -148,11 +150,11 @@ export default {
          });
    
          if (res.result && res.result.code == 0) {
-         this.formData.username = res.result.username; // 更新用户数据
-  		 this.formData.email = res.result.email; 
-  		 this.formData.birthday = res.result.birthday; 
-  		 this.formData.bio = res.result.bio; 
-		 this.avatar = res.result.avatarUrl;
+         this.formData.username = res.result.data.username; // 更新用户数据
+  		 this.formData.email = res.result.data.email; 
+  		 this.formData.birthday = res.result.data.birthday; 
+  		 this.formData.bio = res.result.data.bio; 
+		 this.avatar = res.result.data.avatarUrl;
            uni.setStorageSync('${userId}_userdata', this.formData); // 将用户数据存入缓存
 		   uni.setStorageSync('${userId}_nickname', this.formData.username); // 将用户数据存入缓存
 		   uni.setStorageSync('${userId}_avatar', this.avatar); // 将用户数据存入缓存

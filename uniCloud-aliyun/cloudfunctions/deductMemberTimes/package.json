@@ -1,0 +1,7 @@
+{
+  "name": "deductMemberTimes",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

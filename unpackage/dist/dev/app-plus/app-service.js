@@ -230,15 +230,15 @@ if (uni.restoreGlobal) {
       }
     },
     {
-      path: "pages/VerifyCode/VerifyCode",
+      path: "pages/Card/Card",
       style: {
-        navigationBarTitleText: "验证码"
+        navigationBarTitleText: "兑换卡密"
       }
     },
     {
-      path: "pages/WechatLogin/WechatLogin",
+      path: "pages/RedemptionHistory/RedemptionHistory",
       style: {
-        navigationBarTitleText: "微信登陆"
+        navigationBarTitleText: "兑换记录"
       }
     },
     {
@@ -757,7 +757,7 @@ if (uni.restoreGlobal) {
   function T(e2) {
     return e2 && "string" == typeof e2 ? JSON.parse(e2) : e2;
   }
-  const b = true, E = "app", P = T(define_process_env_UNI_SECURE_NETWORK_CONFIG_default), C = E, A = T('{"address":["127.0.0.1","192.168.3.1","192.168.88.1","192.168.0.156"],"servePort":7000,"debugPort":9000,"initialLaunchType":"remote","skipFiles":["<node_internals>/**","C:/Users/86135/Downloads/HBuilderX.4.29.2024093009 (1)/HBuilderX/plugins/unicloud/**/*.js"]}'), O = T('[{"provider":"aliyun","spaceName":"live-evaluation","spaceId":"mp-81416d5f-745f-4b4d-b014-f7bbbe8b5d7d","clientSecret":"9z2S1yRx6KUG2CHIPOCdHg==","endpoint":"https://api.next.bspapp.com"}]') || [];
+  const b = true, E = "app", P = T(define_process_env_UNI_SECURE_NETWORK_CONFIG_default), C = E, A = T('{"address":["127.0.0.1","192.168.3.1","192.168.88.1","192.168.0.156"],"servePort":7002,"debugPort":9002,"initialLaunchType":"remote","skipFiles":["<node_internals>/**","C:/Users/86135/Downloads/HBuilderX.4.29.2024093009 (1)/HBuilderX/plugins/unicloud/**/*.js"]}'), O = T('[{"provider":"aliyun","spaceName":"live-evaluation","spaceId":"mp-81416d5f-745f-4b4d-b014-f7bbbe8b5d7d","clientSecret":"9z2S1yRx6KUG2CHIPOCdHg==","endpoint":"https://api.next.bspapp.com"}]') || [];
   let N = "";
   try {
     N = "__UNI__0CEE0D3";
@@ -3393,7 +3393,7 @@ ${o3}
           });
         } catch (e) {
           this.setUserInfo({}, { cover: true });
-          formatAppLog("error", "at uni_modules/uni-id-pages/common/store.js:60", e.message, e.errCode);
+          formatAppLog("error", "at uni_modules/uni-id-pages/common/store.js:59", e.message, e.errCode);
         }
       }
     },
@@ -3409,7 +3409,7 @@ ${o3}
         try {
           await uniIdCo$c.logout();
         } catch (e) {
-          formatAppLog("error", "at uni_modules/uni-id-pages/common/store.js:79", e);
+          formatAppLog("error", "at uni_modules/uni-id-pages/common/store.js:78", e);
         }
       }
       uni.removeStorageSync("uni_id_token");
@@ -3436,7 +3436,7 @@ ${o3}
             uni.switchTab({
               url: uniIdRedirectUrl,
               fail: (err2) => {
-                formatAppLog("log", "at uni_modules/uni-id-pages/common/store.js:108", err1, err2);
+                formatAppLog("log", "at uni_modules/uni-id-pages/common/store.js:107", err1, err2);
               }
             });
           }
@@ -3473,7 +3473,7 @@ ${o3}
         return uni.redirectTo({
           url: uniIdRedirectUrl ? `/uni_modules/uni-id-pages/pages/userinfo/set-pwd/set-pwd?uniIdRedirectUrl=${uniIdRedirectUrl}&loginType=${e.loginType}` : `/uni_modules/uni-id-pages/pages/userinfo/set-pwd/set-pwd?loginType=${e.loginType}`,
           fail: (err2) => {
-            formatAppLog("log", "at uni_modules/uni-id-pages/common/store.js:153", err2);
+            formatAppLog("log", "at uni_modules/uni-id-pages/common/store.js:152", err2);
           }
         });
       }
@@ -3485,7 +3485,7 @@ ${o3}
   const store = vue.reactive(data);
   const _sfc_main$T = {
     methods: {
-      navigateTo(moduleId) {
+      async navigateTo(moduleId) {
         if (!store.hasLogin) {
           uni.showToast({
             title: "请先登录",
@@ -3496,6 +3496,64 @@ ${o3}
           });
           return;
         }
+        if (moduleId === "start-test") {
+          try {
+            uni.showLoading({
+              title: "正在检查会员状态"
+            });
+            const res = await er.callFunction({
+              name: "getMemberInfo",
+              data: {
+                userId: store.userInfo._id
+              }
+            });
+            const code = res.result.code;
+            const data2 = res.result.data;
+            if (code !== 0) {
+              uni.showToast({
+                title: message || "获取会员信息失败",
+                icon: "none"
+              });
+              return;
+            }
+            uni.hideLoading();
+            if (data2.memberStatus !== "active") {
+              uni.showModal({
+                title: "需要开通会员",
+                content: "开始测评需要开通会员，是否立即开通？",
+                success: (res2) => {
+                  if (res2.confirm) {
+                    uni.navigateTo({
+                      url: "/pages/Card/Card"
+                    });
+                  }
+                }
+              });
+              return;
+            }
+            if (data2.membertype === "times" && data2.remainingTimes <= 0) {
+              uni.showModal({
+                title: "次数已用完",
+                content: "您的测评次数已用完，是否购买新的次数？",
+                success: (res2) => {
+                  if (res2.confirm) {
+                    uni.navigateTo({
+                      url: "/pages/Card/Card"
+                    });
+                  }
+                }
+              });
+              return;
+            }
+          } catch (e) {
+            formatAppLog("error", "at pages/HomePage/HomePage.vue:137", "获取会员信息失败:", e);
+            uni.showToast({
+              title: "系统错误，请稍后再试",
+              icon: "none"
+            });
+            return;
+          }
+        }
         const routes = {
           "start-test": "/pages/EvaluationPage/EvaluationPage",
           "my-reports": "/pages/EvaluationHistoryPage/EvaluationHistoryPage"
@@ -3504,7 +3562,7 @@ ${o3}
           uni.switchTab({
             url: routes[moduleId],
             fail: (err2) => {
-              formatAppLog("error", "at pages/HomePage/HomePage.vue:95", "Navigation failed:", err2);
+              formatAppLog("error", "at pages/HomePage/HomePage.vue:156", "Navigation failed:", err2);
               uni.showToast({
                 title: "页面跳转失败",
                 icon: "none"
@@ -3515,7 +3573,7 @@ ${o3}
           uni.navigateTo({
             url: routes[moduleId],
             fail: (err2) => {
-              formatAppLog("error", "at pages/HomePage/HomePage.vue:106", "Navigation failed:", err2);
+              formatAppLog("error", "at pages/HomePage/HomePage.vue:167", "Navigation failed:", err2);
               uni.showToast({
                 title: "页面跳转失败",
                 icon: "none"
@@ -3641,13 +3699,25 @@ ${o3}
         });
       },
       async submitForm() {
+        const userId = store.userInfo._id;
+        formatAppLog("log", "at pages/EvaluationPage/EvaluationPage.vue:128", userId);
         try {
           if (!this.formData.LocalfileUrl) {
             uni.showToast({ title: "请先上传视频", icon: "none" });
             return;
           }
+          const cachedmetricdata = uni.getStorageSync(`${userId}_metricData`);
+          if (!cachedmetricdata) {
+            uni.showToast({
+              title: "请先设置指标",
+              icon: "none",
+              duration: 2e3
+            });
+            uni.navigateTo({
+              url: "/pages/Metric/Metric"
+            });
+          }
           uni.showLoading({ title: "提交中" });
-          const userId = store.userInfo._id;
           const uploadResult = await er.uploadFile({
             filePath: this.formData.LocalfileUrl,
             cloudPath: `Video/${userId}-${Date.now()}.mp4`,
@@ -3658,14 +3728,14 @@ ${o3}
             fileList: [this.formData.fileUrl]
           });
           const publicFileUrl = fileList[0].tempFileURL;
-          formatAppLog("log", "at pages/EvaluationPage/EvaluationPage.vue:146", publicFileUrl);
+          formatAppLog("log", "at pages/EvaluationPage/EvaluationPage.vue:159", publicFileUrl);
           const ans = await er.callFunction({
             name: "aliFileTrans",
             data: { fileLink: publicFileUrl }
           });
           if (ans.result.code === 0) {
             const allText = ans.result.data.Sentences.map((sentence) => sentence.Text).join(" ");
-            formatAppLog("log", "at pages/EvaluationPage/EvaluationPage.vue:154", "所有句子:", allText);
+            formatAppLog("log", "at pages/EvaluationPage/EvaluationPage.vue:167", "所有句子:", allText);
             const res = await er.callFunction({
               name: "SubmitEvaData",
               data: {
@@ -3679,7 +3749,7 @@ ${o3}
               }
             });
             if (res.result.success) {
-              uni.setStorageSync("${userId}_recordId", res.result.data.recordId);
+              uni.setStorageSync(`${userId}_recordId`, res.result.data.recordId);
               uni.showToast({ title: "已提交", icon: "success" });
               uni.navigateTo({ url: "/pages/Confirm/Confirm" });
             } else {
@@ -3689,7 +3759,7 @@ ${o3}
             uni.showToast({ title: ans.result.msg });
           }
         } catch (error) {
-          formatAppLog("error", "at pages/EvaluationPage/EvaluationPage.vue:180", "提交失败:", error);
+          formatAppLog("error", "at pages/EvaluationPage/EvaluationPage.vue:193", "提交失败:", error);
           uni.showToast({ title: "系统错误，请稍后重试", icon: "none" });
         } finally {
           uni.hideLoading();
@@ -3801,77 +3871,134 @@ ${o3}
       return {
         nickname: "加载中...",
         avatar: "",
-        isLoading: true
+        isLoading: true,
+        memberInfo: {
+          memberStatus: "none",
+          // 会员状态：none-非会员，active-有效会员
+          membertype: "none",
+          // 会员类型：none-非会员，daily-日卡，monthly-月卡，times-次卡
+          usedTrial: false,
+          // 是否已使用过试用
+          remainingTimes: 0
+        }
       };
     },
     computed: {
       store() {
         return store;
+      },
+      memberStatusClass() {
+        const { memberStatus, membertype } = this.memberInfo;
+        if (memberStatus !== "active")
+          return "status-normal";
+        switch (membertype) {
+          case "daily":
+            return "status-daily";
+          case "monthly":
+            return "status-monthly";
+          case "times":
+            return "status-times";
+          default:
+            return "status-normal";
+        }
       }
     },
     onShow() {
-      store.userInfo._id;
       if (store.hasLogin) {
-        const cachedNickname = uni.getStorageSync("${userId}_nickname");
-        const cachedAvatar = uni.getStorageSync("${userId}_avatar");
-        if (cachedAvatar) {
-          this.avatar = cachedAvatar;
-          this.isLoading = false;
-        }
-        if (cachedNickname) {
-          this.nickname = cachedNickname;
-        } else {
-          this.nickname = "未设置昵称";
-        }
+        this.loadUserData();
       }
     },
     async onLoad() {
       this.isLoading = true;
-      store.userInfo._id;
       if (store.hasLogin) {
-        const cachedNickname = uni.getStorageSync("${userId}_nickname");
-        const cachedAvatar = uni.getStorageSync("${userId}_avatar");
-        if (cachedNickname || cachedAvatar) {
-          this.nickname = cachedNickname;
-          this.avatar = cachedAvatar;
-          this.isLoading = false;
-        } else {
-          try {
-            const res = await er.callFunction({
-              name: "Getuser",
-              data: {
-                uid: store.userInfo._id
-              }
-            });
-            if (res.result && res.result.code === 0) {
-              this.nickname = res.result.data.nickname;
-              this.avatar = res.result.data.avatarUrl;
-              uni.setStorageSync("${userId}_nickname", this.nickname);
-              uni.setStorageSync("${userId}_avatar", this.avatar);
-            } else {
-              this.nickname = "未设置昵称";
-            }
-          } catch (err2) {
-            formatAppLog("error", "at pages/MyPage/MyPage.vue:118", "云函数调用失败:", err2);
-            this.nickname = "加载失败";
-          } finally {
-            this.isLoading = false;
-          }
-        }
+        await this.loadUserData();
       } else {
-        formatAppLog("log", "at pages/MyPage/MyPage.vue:125", "用户未登录");
         this.nickname = "未登录";
         this.isLoading = false;
       }
     },
     methods: {
+      // 加载用户数据
+      async loadUserData() {
+        var _a, _b;
+        this.isLoading = true;
+        const userId = store.userInfo._id;
+        try {
+          const [userRes, memberRes] = await Promise.all([
+            er.callFunction({
+              name: "Getuser",
+              data: { uid: userId }
+            }),
+            er.callFunction({
+              name: "getMemberInfo",
+              data: { userId }
+            })
+          ]);
+          if (((_a = userRes.result) == null ? void 0 : _a.code) === 0 && ((_b = memberRes.result) == null ? void 0 : _b.code) === 0) {
+            const userData = userRes.result.data;
+            formatAppLog("log", "at pages/MyPage/MyPage.vue:144", userData);
+            const memberData = memberRes.result.data;
+            formatAppLog("log", "at pages/MyPage/MyPage.vue:146", memberData);
+            this.nickname = userData.nickname;
+            this.avatar = userData.avatarUrl;
+            this.memberInfo = {
+              memberStatus: memberData.memberStatus || "none",
+              membertype: memberData.membertype || "none",
+              userTrail: memberData.userTrail || false,
+              remainingTimes: memberData.remainingTimes || 0
+            };
+            const userdata = {
+              nickname: userData.nickname,
+              email: userData.email,
+              bio: userData.bio
+            };
+            uni.setStorageSync(`${userId}_memberInfo`, memberData);
+            uni.setStorageSync(`${userId}_nickname`, this.nickname);
+            uni.setStorageSync(`${userId}_avatar`, this.avatar);
+            uni.setStorageSync(`${userId}_userdata`, userdata);
+          }
+        } catch (err2) {
+          formatAppLog("error", "at pages/MyPage/MyPage.vue:167", "加载用户数据失败:", err2);
+        } finally {
+          this.isLoading = false;
+        }
+      },
+      // 获取会员状态文本
+      getMemberStatusText() {
+        const { memberStatus, membertype, remainingDays, remainingTimes } = this.memberInfo;
+        if (memberStatus !== "active")
+          return "普通用户";
+        switch (membertype) {
+          case "daily":
+            return "日卡会员";
+          case "monthly":
+            return "月卡会员";
+          case "times":
+            return `次卡会员(${remainingTimes}次)`;
+          default:
+            return "试用会员";
+        }
+      },
+      // 格式化过期时间
+      formatExpireTime(timestamp) {
+        if (!timestamp)
+          return "";
+        const date = new Date(timestamp);
+        return `${date.getMonth() + 1}月${date.getDate()}日`;
+      },
+      // 处理兑换卡密
+      handleActivateCard() {
+        uni.navigateTo({
+          url: "/pages/Card/Card"
+        });
+      },
       handleLogin() {
         uni.navigateTo({
           url: "/uni_modules/uni-id-pages/pages/login/login-withpwd"
         });
       },
       onAvatarError() {
-        store.userInfo.avatar = "/static/default-avatar.png";
+        this.avatar = "/static/default-avatar.png";
       },
       handleEdit() {
         uni.navigateTo({
@@ -3890,45 +4017,7 @@ ${o3}
       },
       handleHelp() {
         uni.navigateTo({
-          url: "/pages/help-center/help-center"
-        });
-      },
-      handleLogout() {
-        uni.showModal({
-          title: "确认注销",
-          content: "确定要注销账号吗？",
-          success: (res) => {
-            if (res.confirm) {
-              store.hasLogin = false;
-              store.userInfo = {};
-              const tempNickname = this.nickname;
-              const tempUserdata = uni.getStorageSync("${userId}_userdata");
-              const tempmetrcidata = uni.getStorageSync("${userId}_metricData");
-              const tempavatar = uni.getStorageSync("${userId}_avatar");
-              uni.clearStorage({
-                success: () => {
-                  uni.setStorageSync("${userId}_nickname", tempNickname);
-                  uni.setStorageSync("${userId}_userdata", tempUserdata);
-                  uni.setStorageSync("${userId}_metricData", tempmetrcidata);
-                  uni.setStorageSync("${userId}_avatar", tempavatar);
-                  uni.showToast({
-                    title: "已注销账号",
-                    icon: "none"
-                  });
-                  uni.switchTab({
-                    url: "/pages/MyPage/MyPage"
-                  });
-                },
-                fail: (err2) => {
-                  formatAppLog("error", "at pages/MyPage/MyPage.vue:194", "清除本地缓存失败:", err2);
-                  uni.showToast({
-                    title: "注销失败，请稍后重试",
-                    icon: "none"
-                  });
-                }
-              });
-            }
-          }
+          url: "/pages/RedemptionHistory/RedemptionHistory"
         });
       },
       viewavatar() {
@@ -3941,12 +4030,47 @@ ${o3}
         }
         uni.previewImage({
           current: this.avatar,
-          urls: [this.avatar],
-          success: () => {
-            formatAppLog("log", "at pages/MyPage/MyPage.vue:218", "图片预览成功");
-          },
-          fail: (err2) => {
-            formatAppLog("error", "at pages/MyPage/MyPage.vue:221", "图片预览失败:", err2);
+          urls: [this.avatar]
+        });
+      },
+      handleLogout() {
+        uni.showModal({
+          title: "确认注销",
+          content: "确定要注销账号吗？",
+          success: (res) => {
+            if (res.confirm) {
+              store.hasLogin = false;
+              store.userInfo = {};
+              const userId = store.userInfo._id;
+              const tempNickname = this.nickname;
+              const tempUserdata = uni.getStorageSync(`${userId}_userdata`);
+              const tempmetrcidata = uni.getStorageSync(`${userId}_metricData`);
+              const tempavatar = uni.getStorageSync(`${userId}_avatar`);
+              this.nickname = "";
+              this.avatar = "";
+              uni.clearStorage({
+                success: () => {
+                  uni.setStorageSync(`${userId}_nickname`, tempNickname);
+                  uni.setStorageSync(`${userId}_userdata`, tempUserdata);
+                  uni.setStorageSync(`${userId}_metricData`, tempmetrcidata);
+                  uni.setStorageSync(`${userId}_avatar`, tempavatar);
+                  uni.showToast({
+                    title: "已注销账号",
+                    icon: "none"
+                  });
+                  uni.switchTab({
+                    url: "/pages/MyPage/MyPage"
+                  });
+                },
+                fail: (err2) => {
+                  formatAppLog("error", "at pages/MyPage/MyPage.vue:288", "清除本地缓存失败:", err2);
+                  uni.showToast({
+                    title: "注销失败，请稍后重试",
+                    icon: "none"
+                  });
+                }
+              });
+            }
           }
         });
       }
@@ -3954,98 +4078,128 @@ ${o3}
   };
   function _sfc_render$Q(_ctx, _cache, $props, $setup, $data, $options) {
     return vue.openBlock(), vue.createElementBlock("view", { class: "profile-container" }, [
-      vue.createElementVNode("view", { class: "cover-image" }, [
-        vue.createElementVNode("view", { class: "cover-pattern" })
-      ]),
-      vue.createElementVNode("view", { class: "profile-card" }, [
-        vue.createElementVNode(
-          "view",
-          {
-            class: vue.normalizeClass(["info-container", { "guest-container": !$options.store.hasLogin }])
-          },
-          [
-            vue.createElementVNode("view", {
-              class: "avatar-container",
-              onClick: _cache[1] || (_cache[1] = (...args) => $options.viewavatar && $options.viewavatar(...args))
-            }, [
-              $data.isLoading ? (vue.openBlock(), vue.createElementBlock("view", {
-                key: 0,
-                class: "avatar-loading"
-              }, [
-                vue.createElementVNode("text", { class: "loading-spinner" }, "加载中...")
-              ])) : (vue.openBlock(), vue.createElementBlock("image", {
-                key: 1,
-                src: $data.avatar || "/static/default-avatar.png",
-                mode: "aspectFill",
-                class: "avatar-image",
-                onError: _cache[0] || (_cache[0] = (...args) => $options.onAvatarError && $options.onAvatarError(...args))
-              }, null, 40, ["src"]))
+      vue.createCommentVNode(" 加载状态显示 "),
+      $data.isLoading ? (vue.openBlock(), vue.createElementBlock("view", {
+        key: 0,
+        class: "loading-container"
+      }, [
+        vue.createElementVNode("text", { class: "loading-text" }, "加载中...")
+      ])) : (vue.openBlock(), vue.createElementBlock(
+        vue.Fragment,
+        { key: 1 },
+        [
+          vue.createCommentVNode(" 页面内容 "),
+          vue.createElementVNode("view", null, [
+            vue.createElementVNode("view", { class: "cover-image" }, [
+              vue.createElementVNode("view", { class: "cover-pattern" })
             ]),
-            vue.createElementVNode("view", { class: "user-info" }, [
+            vue.createElementVNode("view", { class: "profile-card" }, [
               vue.createElementVNode(
-                "text",
-                { class: "nickname" },
-                vue.toDisplayString($options.store.hasLogin ? $data.nickname : "未登录"),
-                1
-                /* TEXT */
-              )
-            ]),
-            !$options.store.hasLogin ? (vue.openBlock(), vue.createElementBlock("view", {
-              key: 0,
-              class: "login-section"
-            }, [
-              vue.createElementVNode("button", {
-                class: "login-btn",
-                onClick: _cache[2] || (_cache[2] = (...args) => $options.handleLogin && $options.handleLogin(...args))
-              }, "立即登录")
-            ])) : vue.createCommentVNode("v-if", true)
-          ],
-          2
-          /* CLASS */
-        ),
-        $options.store.hasLogin ? (vue.openBlock(), vue.createElementBlock("view", {
-          key: 0,
-          class: "menu-section"
-        }, [
-          vue.createElementVNode("view", {
-            class: "menu-item",
-            onClick: _cache[3] || (_cache[3] = (...args) => $options.handleEdit && $options.handleEdit(...args))
-          }, [
-            vue.createElementVNode("text", { class: "menu-text" }, "个人信息"),
-            vue.createElementVNode("text", { class: "menu-arrow" }, ">")
-          ]),
-          vue.createElementVNode("view", {
-            class: "menu-item",
-            onClick: _cache[4] || (_cache[4] = (...args) => $options.handleMetrics && $options.handleMetrics(...args))
-          }, [
-            vue.createElementVNode("text", { class: "menu-text" }, "指标设置"),
-            vue.createElementVNode("text", { class: "menu-arrow" }, ">")
-          ]),
-          vue.createElementVNode("view", {
-            class: "menu-item",
-            onClick: _cache[5] || (_cache[5] = (...args) => $options.handleFeedback && $options.handleFeedback(...args))
-          }, [
-            vue.createElementVNode("text", { class: "menu-text" }, "意见反馈"),
-            vue.createElementVNode("text", { class: "menu-arrow" }, ">")
-          ]),
-          vue.createElementVNode("view", {
-            class: "menu-item",
-            onClick: _cache[6] || (_cache[6] = (...args) => $options.handleHelp && $options.handleHelp(...args))
-          }, [
-            vue.createElementVNode("text", { class: "menu-text" }, "帮助中心"),
-            vue.createElementVNode("text", { class: "menu-arrow" }, ">")
+                "view",
+                {
+                  class: vue.normalizeClass(["info-container", { "guest-container": !$options.store.hasLogin }])
+                },
+                [
+                  vue.createElementVNode("view", {
+                    class: "avatar-container",
+                    onClick: _cache[1] || (_cache[1] = (...args) => $options.viewavatar && $options.viewavatar(...args))
+                  }, [
+                    vue.createElementVNode("image", {
+                      src: $data.avatar || "/static/default-avatar.png",
+                      mode: "aspectFill",
+                      class: "avatar-image",
+                      onError: _cache[0] || (_cache[0] = (...args) => $options.onAvatarError && $options.onAvatarError(...args))
+                    }, null, 40, ["src"])
+                  ]),
+                  vue.createElementVNode("view", { class: "user-info" }, [
+                    vue.createElementVNode(
+                      "text",
+                      { class: "nickname" },
+                      vue.toDisplayString($options.store.hasLogin ? $data.nickname : "未登录"),
+                      1
+                      /* TEXT */
+                    ),
+                    $options.store.hasLogin ? (vue.openBlock(), vue.createElementBlock(
+                      "text",
+                      {
+                        key: 0,
+                        class: vue.normalizeClass(["member-badge", $options.memberStatusClass])
+                      },
+                      vue.toDisplayString($options.getMemberStatusText()),
+                      3
+                      /* TEXT, CLASS */
+                    )) : vue.createCommentVNode("v-if", true)
+                  ]),
+                  !$options.store.hasLogin ? (vue.openBlock(), vue.createElementBlock("view", {
+                    key: 0,
+                    class: "login-section"
+                  }, [
+                    vue.createElementVNode("button", {
+                      class: "login-btn",
+                      onClick: _cache[2] || (_cache[2] = (...args) => $options.handleLogin && $options.handleLogin(...args))
+                    }, "立即登录")
+                  ])) : vue.createCommentVNode("v-if", true)
+                ],
+                2
+                /* CLASS */
+              ),
+              $options.store.hasLogin ? (vue.openBlock(), vue.createElementBlock("view", {
+                key: 0,
+                class: "menu-section"
+              }, [
+                vue.createElementVNode("view", {
+                  class: "menu-item",
+                  onClick: _cache[3] || (_cache[3] = (...args) => $options.handleActivateCard && $options.handleActivateCard(...args))
+                }, [
+                  vue.createElementVNode("view", { class: "menu-item-left" }, [
+                    vue.createElementVNode("text", { class: "menu-text" }, "兑换卡密")
+                  ]),
+                  vue.createElementVNode("text", { class: "menu-arrow" }, ">")
+                ]),
+                vue.createElementVNode("view", {
+                  class: "menu-item",
+                  onClick: _cache[4] || (_cache[4] = (...args) => $options.handleEdit && $options.handleEdit(...args))
+                }, [
+                  vue.createElementVNode("text", { class: "menu-text" }, "个人信息"),
+                  vue.createElementVNode("text", { class: "menu-arrow" }, ">")
+                ]),
+                vue.createElementVNode("view", {
+                  class: "menu-item",
+                  onClick: _cache[5] || (_cache[5] = (...args) => $options.handleMetrics && $options.handleMetrics(...args))
+                }, [
+                  vue.createElementVNode("text", { class: "menu-text" }, "套餐设置"),
+                  vue.createElementVNode("text", { class: "menu-arrow" }, ">")
+                ]),
+                vue.createElementVNode("view", {
+                  class: "menu-item",
+                  onClick: _cache[6] || (_cache[6] = (...args) => $options.handleFeedback && $options.handleFeedback(...args))
+                }, [
+                  vue.createElementVNode("text", { class: "menu-text" }, "意见反馈"),
+                  vue.createElementVNode("text", { class: "menu-arrow" }, ">")
+                ]),
+                vue.createElementVNode("view", {
+                  class: "menu-item",
+                  onClick: _cache[7] || (_cache[7] = (...args) => $options.handleHelp && $options.handleHelp(...args))
+                }, [
+                  vue.createElementVNode("text", { class: "menu-text" }, "兑换记录"),
+                  vue.createElementVNode("text", { class: "menu-arrow" }, ">")
+                ])
+              ])) : vue.createCommentVNode("v-if", true),
+              $options.store.hasLogin ? (vue.openBlock(), vue.createElementBlock("view", {
+                key: 1,
+                class: "logout-section"
+              }, [
+                vue.createElementVNode("button", {
+                  class: "logout-btn",
+                  onClick: _cache[8] || (_cache[8] = (...args) => $options.handleLogout && $options.handleLogout(...args))
+                }, "注销账号")
+              ])) : vue.createCommentVNode("v-if", true)
+            ])
           ])
-        ])) : vue.createCommentVNode("v-if", true),
-        $options.store.hasLogin ? (vue.openBlock(), vue.createElementBlock("view", {
-          key: 1,
-          class: "logout-section"
-        }, [
-          vue.createElementVNode("button", {
-            class: "logout-btn",
-            onClick: _cache[7] || (_cache[7] = (...args) => $options.handleLogout && $options.handleLogout(...args))
-          }, "注销账号")
-        ])) : vue.createCommentVNode("v-if", true)
-      ])
+        ],
+        2112
+        /* STABLE_FRAGMENT, DEV_ROOT_FRAGMENT */
+      ))
     ]);
   }
   const PagesMyPageMyPage = /* @__PURE__ */ _export_sfc(_sfc_main$R, [["render", _sfc_render$Q], ["__file", "C:/Evaluate/EvaluateProject/pages/MyPage/MyPage.vue"]]);
@@ -4078,6 +4232,7 @@ ${o3}
             uni.showToast({ title: "获取数据失败", icon: "none" });
             return;
           }
+          formatAppLog("log", "at pages/EvaluationHistoryPage/EvaluationHistoryPage.vue:96", res.result.data);
           if (res.result.data.length === 0) {
             this.evaluationRecords = [];
             uni.showToast({ title: "暂无测评记录", icon: "none" });
@@ -4235,14 +4390,14 @@ ${o3}
     constructor() {
       this._caches = /* @__PURE__ */ Object.create(null);
     }
-    interpolate(message, values, delimiters = defaultDelimiters) {
+    interpolate(message2, values, delimiters = defaultDelimiters) {
       if (!values) {
-        return [message];
+        return [message2];
       }
-      let tokens = this._caches[message];
+      let tokens = this._caches[message2];
       if (!tokens) {
-        tokens = parse(message, delimiters);
-        this._caches[message] = tokens;
+        tokens = parse(message2, delimiters);
+        this._caches[message2] = tokens;
       }
       return compile(tokens, values);
     }
@@ -4397,38 +4552,38 @@ ${o3}
         this.watchers.splice(index, 1);
       };
     }
-    add(locale, message, override = true) {
+    add(locale, message2, override = true) {
       const curMessages = this.messages[locale];
       if (curMessages) {
         if (override) {
-          Object.assign(curMessages, message);
+          Object.assign(curMessages, message2);
         } else {
-          Object.keys(message).forEach((key) => {
+          Object.keys(message2).forEach((key) => {
             if (!hasOwn(curMessages, key)) {
-              curMessages[key] = message[key];
+              curMessages[key] = message2[key];
             }
           });
         }
       } else {
-        this.messages[locale] = message;
+        this.messages[locale] = message2;
       }
     }
-    f(message, values, delimiters) {
-      return this.formater.interpolate(message, values, delimiters).join("");
+    f(message2, values, delimiters) {
+      return this.formater.interpolate(message2, values, delimiters).join("");
     }
     t(key, locale, values) {
-      let message = this.message;
+      let message2 = this.message;
       if (typeof locale === "string") {
         locale = normalizeLocale(locale, this.messages);
-        locale && (message = this.messages[locale]);
+        locale && (message2 = this.messages[locale]);
       } else {
         values = locale;
       }
-      if (!hasOwn(message, key)) {
+      if (!hasOwn(message2, key)) {
         console.warn(`Cannot translate the value of keypath ${key}. Use the value of keypath as default.`);
         return key;
       }
-      return this.formater.interpolate(message[key], values).join("");
+      return this.formater.interpolate(message2[key], values).join("");
     }
   }
   function watchAppLocale(appVm, i18n) {
@@ -4495,14 +4650,14 @@ ${o3}
     };
     return {
       i18n,
-      f(message, values, delimiters) {
-        return i18n.f(message, values, delimiters);
+      f(message2, values, delimiters) {
+        return i18n.f(message2, values, delimiters);
       },
       t(key, values) {
         return t2(key, values);
       },
-      add(locale2, message, override = true) {
-        return i18n.add(locale2, message, override);
+      add(locale2, message2, override = true) {
+        return i18n.add(locale2, message2, override);
       },
       watch(fn) {
         return i18n.watchLocale(fn);
@@ -4771,9 +4926,9 @@ ${o3}
           return "#FFC107";
         return "#FF5722";
       },
-      handleError(message) {
+      handleError(message2) {
         this.error = true;
-        this.errorMessage = message || "加载失败，请稍后重试";
+        this.errorMessage = message2 || "加载失败，请稍后重试";
         this.loading = false;
       },
       retryLoading() {
@@ -5939,8 +6094,10 @@ ${o3}
       }
     },
     async onLoad() {
-      const cachedUserInfo = uni.getStorageSync("${userId}_userdata");
-      const cachedAvatar = uni.getStorageSync("${userId}_avatar");
+      const userId = store.userInfo._id;
+      const cachedUserInfo = uni.getStorageSync(`${userId}_userdata`);
+      formatAppLog("log", "at pages/UserData/UserData.vue:137", cachedUserInfo);
+      const cachedAvatar = uni.getStorageSync(`${userId}_avatar`);
       if (cachedUserInfo || cachedAvatar) {
         this.formData = cachedUserInfo;
         this.avatar = cachedAvatar;
@@ -5955,19 +6112,19 @@ ${o3}
             }
           });
           if (res.result && res.result.code == 0) {
-            this.formData.username = res.result.username;
-            this.formData.email = res.result.email;
-            this.formData.birthday = res.result.birthday;
-            this.formData.bio = res.result.bio;
-            this.avatar = res.result.avatarUrl;
+            this.formData.username = res.result.data.username;
+            this.formData.email = res.result.data.email;
+            this.formData.birthday = res.result.data.birthday;
+            this.formData.bio = res.result.data.bio;
+            this.avatar = res.result.data.avatarUrl;
             uni.setStorageSync("${userId}_userdata", this.formData);
             uni.setStorageSync("${userId}_nickname", this.formData.username);
             uni.setStorageSync("${userId}_avatar", this.avatar);
           } else {
-            formatAppLog("error", "at pages/UserData/UserData.vue:160", "获取用户信息失败:", res.result.message || "未知错误");
+            formatAppLog("error", "at pages/UserData/UserData.vue:162", "获取用户信息失败:", res.result.message || "未知错误");
           }
         } catch (error) {
-          formatAppLog("error", "at pages/UserData/UserData.vue:163", "云函数调用失败:", error);
+          formatAppLog("error", "at pages/UserData/UserData.vue:165", "云函数调用失败:", error);
         }
       }
     },
@@ -6094,7 +6251,7 @@ ${o3}
           }
         } catch (error) {
           if (!error.errMsg || !error.errMsg.includes("cancel")) {
-            formatAppLog("log", "at pages/UserData/UserData.vue:300", "用户取消操作");
+            formatAppLog("log", "at pages/UserData/UserData.vue:302", "用户取消操作");
           }
         } finally {
           uni.hideLoading();
@@ -6272,110 +6429,6 @@ ${o3}
     );
   }
   const PagesUserDataUserData = /* @__PURE__ */ _export_sfc(_sfc_main$K, [["render", _sfc_render$J], ["__file", "C:/Evaluate/EvaluateProject/pages/UserData/UserData.vue"]]);
-  const _sfc_main$J = {
-    data() {
-      return {};
-    },
-    methods: {}
-  };
-  function _sfc_render$I(_ctx, _cache, $props, $setup, $data, $options) {
-    return vue.openBlock(), vue.createElementBlock("view");
-  }
-  const PagesVerifyCodeVerifyCode = /* @__PURE__ */ _export_sfc(_sfc_main$J, [["render", _sfc_render$I], ["__file", "C:/Evaluate/EvaluateProject/pages/VerifyCode/VerifyCode.vue"]]);
-  const _sfc_main$I = {
-    data() {
-      return {};
-    },
-    methods: {}
-  };
-  function _sfc_render$H(_ctx, _cache, $props, $setup, $data, $options) {
-    return vue.openBlock(), vue.createElementBlock("view");
-  }
-  const PagesWechatLoginWechatLogin = /* @__PURE__ */ _export_sfc(_sfc_main$I, [["render", _sfc_render$H], ["__file", "C:/Evaluate/EvaluateProject/pages/WechatLogin/WechatLogin.vue"]]);
-  const _sfc_main$H = {
-    data() {
-      return {};
-    },
-    methods: {}
-  };
-  function _sfc_render$G(_ctx, _cache, $props, $setup, $data, $options) {
-    return vue.openBlock(), vue.createElementBlock("view");
-  }
-  const PagesRegisterRegister = /* @__PURE__ */ _export_sfc(_sfc_main$H, [["render", _sfc_render$G], ["__file", "C:/Evaluate/EvaluateProject/pages/register/register.vue"]]);
-  let mediaQueryObserver;
-  const _sfc_main$G = {
-    name: "UniMatchMedia",
-    props: {
-      width: {
-        type: [Number, String],
-        default: ""
-      },
-      minWidth: {
-        type: [Number, String],
-        default: ""
-      },
-      maxWidth: {
-        type: [Number, String],
-        default: ""
-      },
-      height: {
-        type: [Number, String],
-        default: ""
-      },
-      minHeight: {
-        type: [Number, String],
-        default: ""
-      },
-      maxHeight: {
-        type: [Number, String],
-        default: ""
-      },
-      orientation: {
-        type: String,
-        default: ""
-      }
-    },
-    data() {
-      return {
-        matches: true
-      };
-    },
-    mounted() {
-      let parent = this.$parent;
-      while (parent.$parent) {
-        parent = parent.$parent;
-      }
-      mediaQueryObserver = uni.createMediaQueryObserver(parent);
-      mediaQueryObserver.observe({
-        width: this.width,
-        maxWidth: this.maxWidth,
-        minWidth: this.minWidth,
-        height: this.height,
-        minHeight: this.minHeight,
-        maxHeight: this.maxHeight,
-        orientation: this.orientation
-      }, (matches) => {
-        this.matches = matches;
-      });
-    },
-    destroyed() {
-      mediaQueryObserver.disconnect();
-    }
-  };
-  function _sfc_render$F(_ctx, _cache, $props, $setup, $data, $options) {
-    return vue.withDirectives((vue.openBlock(), vue.createElementBlock(
-      "view",
-      null,
-      [
-        vue.renderSlot(_ctx.$slots, "default", {}, void 0, true)
-      ],
-      512
-      /* NEED_PATCH */
-    )), [
-      [vue.vShow, $data.matches]
-    ]);
-  }
-  const __easycom_0$5 = /* @__PURE__ */ _export_sfc(_sfc_main$G, [["render", _sfc_render$F], ["__scopeId", "data-v-39bca002"], ["__file", "C:/Users/86135/Downloads/HBuilderX.4.29.2024093009 (1)/HBuilderX/plugins/uniapp-cli-vite/node_modules/@dcloudio/uni-components/lib/uni-match-media/uni-match-media.vue"]]);
   const fontData = [
     {
       "font_class": "arrow-down",
@@ -7026,7 +7079,7 @@ ${o3}
     const reg = /^[0-9]*$/g;
     return typeof val === "number" || reg.test(val) ? val + "px" : val;
   };
-  const _sfc_main$F = {
+  const _sfc_main$J = {
     name: "UniIcons",
     emits: ["click"],
     props: {
@@ -7080,7 +7133,7 @@ ${o3}
       }
     }
   };
-  function _sfc_render$E(_ctx, _cache, $props, $setup, $data, $options) {
+  function _sfc_render$I(_ctx, _cache, $props, $setup, $data, $options) {
     return vue.openBlock(), vue.createElementBlock(
       "text",
       {
@@ -7095,7 +7148,584 @@ ${o3}
       /* CLASS, STYLE */
     );
   }
-  const __easycom_0$4 = /* @__PURE__ */ _export_sfc(_sfc_main$F, [["render", _sfc_render$E], ["__scopeId", "data-v-d31e1c47"], ["__file", "C:/Evaluate/EvaluateProject/uni_modules/uni-icons/components/uni-icons/uni-icons.vue"]]);
+  const __easycom_0$5 = /* @__PURE__ */ _export_sfc(_sfc_main$J, [["render", _sfc_render$I], ["__scopeId", "data-v-d31e1c47"], ["__file", "C:/Evaluate/EvaluateProject/uni_modules/uni-icons/components/uni-icons/uni-icons.vue"]]);
+  const _sfc_main$I = {
+    data() {
+      return {
+        cardNumber: "",
+        cardPassword: "",
+        pageLoading: true,
+        // 添加页面加载状态
+        loading: false,
+        memberInfo: {
+          memberStatus: "none",
+          // 会员状态：none-非会员，active-有效会员
+          membertype: "none",
+          // 会员类型：none-非会员，daily-日卡，monthly-月卡，times-次卡
+          remainingTimes: 0,
+          // 剩余次数（次卡用）
+          remainingDays: 0,
+          // 剩余天数（日卡/月卡用）
+          usedTrial: false,
+          // 是否已使用过试用
+          memberExpireTime: ""
+          // 会员到期时间
+        },
+        isValid: false
+      };
+    },
+    onLoad() {
+      this.loadMemberInfo();
+    },
+    methods: {
+      // 加载会员信息
+      async loadMemberInfo() {
+        if (!store.hasLogin)
+          return;
+        try {
+          const res = await er.callFunction({
+            name: "getMemberInfo",
+            data: {
+              userId: store.userInfo._id
+            }
+          });
+          if (res.result.code === 0) {
+            if (["daily", "monthly"].includes(res.result.data.membertype) && res.result.data.memberExpireTime) {
+              const now = (/* @__PURE__ */ new Date()).getTime();
+              const expireTime = new Date(res.result.data.memberExpireTime).getTime();
+              const remainingDays = Math.ceil((expireTime - now) / (1e3 * 60 * 60 * 24));
+              res.result.data.remainingDays = Math.max(0, remainingDays);
+            }
+            formatAppLog("log", "at pages/Card/Card.vue:139", res.result.data);
+            this.memberInfo = res.result.data;
+          }
+          formatAppLog("log", "at pages/Card/Card.vue:142", res.result.data);
+        } catch (error) {
+          formatAppLog("error", "at pages/Card/Card.vue:144", "加载会员信息失败:", error);
+          uni.showToast({
+            title: "加载会员信息失败",
+            icon: "none"
+          });
+        } finally {
+          this.pageLoading = false;
+        }
+      },
+      // 处理输入变化
+      onInputChange() {
+        this.isValid = this.cardNumber.length > 0 && this.cardPassword.length > 0;
+      },
+      // 处理卡密激活
+      async handleActivate() {
+        if (!this.isValid || this.loading)
+          return;
+        const userId = store.userInfo._id;
+        this.loading = true;
+        try {
+          const { result } = await er.callFunction({
+            name: "activateCard",
+            data: {
+              userId: store.userInfo._id,
+              cardNumber: this.cardNumber,
+              cardPassword: this.cardPassword
+            }
+          });
+          if (result.code === 0) {
+            uni.showToast({
+              title: "激活成功",
+              icon: "success"
+            });
+            await this.loadMemberInfo();
+            const memberData = {
+              memberStatus: this.memberInfo.memberStatus || "none",
+              membertype: this.memberInfo.membertype || "none",
+              usedTrial: this.memberInfo.usedTrial || false,
+              remainingTimes: this.memberInfo.remainingTimes || 0
+            };
+            uni.setStorageSync(`${userId}_memberInfo`, memberData);
+            this.cardNumber = "";
+            this.cardPassword = "";
+            this.isValid = false;
+          } else {
+            uni.showToast({
+              title: result.message || "激活失败",
+              icon: "none"
+            });
+          }
+        } catch (error) {
+          formatAppLog("error", "at pages/Card/Card.vue:199", "激活失败:", error);
+          uni.showToast({
+            title: "激活失败，请重试",
+            icon: "none"
+          });
+        } finally {
+          this.loading = false;
+        }
+      },
+      // 处理免费体验
+      async handleFreeTrial() {
+        if (this.loading)
+          return;
+        this.loading = true;
+        try {
+          const { result } = await er.callFunction({
+            name: "activateFreeTrial",
+            data: {
+              userId: store.userInfo._id
+            }
+          });
+          if (result.code === 0) {
+            uni.showToast({
+              title: "免费体验已激活",
+              icon: "success"
+            });
+            await this.loadMemberInfo();
+          } else {
+            uni.showToast({
+              title: result.message || "激活失败",
+              icon: "none"
+            });
+          }
+        } catch (error) {
+          formatAppLog("error", "at pages/Card/Card.vue:235", "激活免费体验失败:", error);
+          uni.showToast({
+            title: "激活失败，请重试",
+            icon: "none"
+          });
+        } finally {
+          this.loading = false;
+        }
+      },
+      // 获取会员状态文本
+      getMemberStatusText() {
+        const { memberStatus, membertype } = this.memberInfo;
+        if (memberStatus === "active") {
+          switch (membertype) {
+            case "daily":
+              return "日卡会员";
+            case "monthly":
+              return "月卡会员";
+            case "times":
+              return "次卡会员";
+            default:
+              return "试用会员";
+          }
+        }
+        return "普通用户";
+      },
+      // 格式化过期时间
+      formatExpireTime(timestamp) {
+        if (!timestamp)
+          return "未知";
+        const date = new Date(timestamp);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      }
+    }
+  };
+  function _sfc_render$H(_ctx, _cache, $props, $setup, $data, $options) {
+    const _component_uni_load_more = resolveEasycom(vue.resolveDynamicComponent("uni-load-more"), __easycom_0$7);
+    const _component_uni_icons = resolveEasycom(vue.resolveDynamicComponent("uni-icons"), __easycom_0$5);
+    return vue.openBlock(), vue.createElementBlock("view", { class: "container" }, [
+      $data.pageLoading ? (vue.openBlock(), vue.createElementBlock("view", {
+        key: 0,
+        class: "loading-container"
+      }, [
+        vue.createVNode(_component_uni_load_more, { status: "loading" })
+      ])) : (vue.openBlock(), vue.createElementBlock(
+        vue.Fragment,
+        { key: 1 },
+        [
+          vue.createCommentVNode(" 卡密信息卡片 "),
+          vue.createElementVNode("view", { class: "card-info" }, [
+            vue.createElementVNode("view", { class: "member-status" }, [
+              vue.createElementVNode("text", { class: "status-label" }, "当前状态："),
+              vue.createElementVNode(
+                "text",
+                {
+                  class: vue.normalizeClass(["status-value", { "active": $data.memberInfo.memberStatus === "active" }])
+                },
+                vue.toDisplayString($options.getMemberStatusText()),
+                3
+                /* TEXT, CLASS */
+              )
+            ]),
+            $data.memberInfo.memberStatus === "active" ? (vue.openBlock(), vue.createElementBlock("view", {
+              key: 0,
+              class: "expire-info"
+            }, [
+              vue.createCommentVNode(" 日卡和月卡显示到期时间和剩余天数 "),
+              ["daily", "monthly"].includes($data.memberInfo.membertype) ? (vue.openBlock(), vue.createElementBlock(
+                vue.Fragment,
+                { key: 0 },
+                [
+                  vue.createElementVNode("view", null, [
+                    vue.createElementVNode("text", { class: "expire-label" }, "到期时间："),
+                    vue.createElementVNode(
+                      "text",
+                      { class: "expire-value" },
+                      vue.toDisplayString($options.formatExpireTime($data.memberInfo.memberExpireTime)),
+                      1
+                      /* TEXT */
+                    )
+                  ]),
+                  vue.createElementVNode("view", null, [
+                    vue.createElementVNode("text", { class: "days-label" }, "剩余天数："),
+                    vue.createElementVNode(
+                      "text",
+                      { class: "days-value" },
+                      vue.toDisplayString($data.memberInfo.remainingDays) + "天",
+                      1
+                      /* TEXT */
+                    )
+                  ])
+                ],
+                64
+                /* STABLE_FRAGMENT */
+              )) : $data.memberInfo.membertype === "times" ? (vue.openBlock(), vue.createElementBlock(
+                vue.Fragment,
+                { key: 1 },
+                [
+                  vue.createCommentVNode(" 次卡显示剩余次数 "),
+                  vue.createElementVNode("view", { class: "times-info" }, [
+                    vue.createElementVNode("text", { class: "times-label" }, "剩余次数："),
+                    vue.createElementVNode(
+                      "text",
+                      { class: "times-value" },
+                      vue.toDisplayString($data.memberInfo.remainingTimes || 0) + "次",
+                      1
+                      /* TEXT */
+                    )
+                  ])
+                ],
+                64
+                /* STABLE_FRAGMENT */
+              )) : vue.createCommentVNode("v-if", true)
+            ])) : vue.createCommentVNode("v-if", true)
+          ]),
+          vue.createCommentVNode(" 免费体验提示 "),
+          !$data.memberInfo.usedTrial ? (vue.openBlock(), vue.createElementBlock("view", {
+            key: 0,
+            class: "free-trial-tip"
+          }, [
+            vue.createVNode(_component_uni_icons, {
+              type: "info",
+              size: "16",
+              color: "#3494E6"
+            }),
+            vue.createElementVNode("text", null, "您有一次免费体验机会"),
+            vue.createElementVNode("button", {
+              class: "trial-btn",
+              onClick: _cache[0] || (_cache[0] = (...args) => $options.handleFreeTrial && $options.handleFreeTrial(...args))
+            }, "立即体验")
+          ])) : vue.createCommentVNode("v-if", true),
+          vue.createCommentVNode(" 卡密输入区域 "),
+          vue.createElementVNode("view", { class: "input-section" }, [
+            vue.createElementVNode("view", { class: "input-group" }, [
+              vue.createElementVNode("text", { class: "input-label" }, "卡号"),
+              vue.withDirectives(vue.createElementVNode(
+                "input",
+                {
+                  class: "input-field",
+                  type: "text",
+                  "onUpdate:modelValue": _cache[1] || (_cache[1] = ($event) => $data.cardNumber = $event),
+                  placeholder: "请输入卡号",
+                  onInput: _cache[2] || (_cache[2] = (...args) => $options.onInputChange && $options.onInputChange(...args))
+                },
+                null,
+                544
+                /* NEED_HYDRATION, NEED_PATCH */
+              ), [
+                [vue.vModelText, $data.cardNumber]
+              ])
+            ]),
+            vue.createElementVNode("view", { class: "input-group" }, [
+              vue.createElementVNode("text", { class: "input-label" }, "卡密"),
+              vue.withDirectives(vue.createElementVNode(
+                "input",
+                {
+                  class: "input-field",
+                  type: "text",
+                  "onUpdate:modelValue": _cache[3] || (_cache[3] = ($event) => $data.cardPassword = $event),
+                  placeholder: "请输入卡密",
+                  onInput: _cache[4] || (_cache[4] = (...args) => $options.onInputChange && $options.onInputChange(...args))
+                },
+                null,
+                544
+                /* NEED_HYDRATION, NEED_PATCH */
+              ), [
+                [vue.vModelText, $data.cardPassword]
+              ])
+            ])
+          ]),
+          vue.createCommentVNode(" 激活按钮 "),
+          vue.createElementVNode("button", {
+            class: "activate-btn",
+            disabled: !$data.isValid || $data.loading,
+            onClick: _cache[5] || (_cache[5] = (...args) => $options.handleActivate && $options.handleActivate(...args))
+          }, vue.toDisplayString($data.loading ? "激活中..." : "立即激活"), 9, ["disabled"]),
+          vue.createCommentVNode(" 使用说明 "),
+          vue.createElementVNode("view", { class: "instructions" }, [
+            vue.createElementVNode("view", { class: "instruction-title" }, "使用说明"),
+            vue.createElementVNode("view", { class: "instruction-item" }, "1. 请确保输入的卡号和卡密正确"),
+            vue.createElementVNode("view", { class: "instruction-item" }, "2. 卡密激活后即时生效"),
+            vue.createElementVNode("view", { class: "instruction-item" }, "3. 当前会员未过期时激活新卡密，有效期将自动叠加(次卡与日卡月卡不可叠加)"),
+            vue.createElementVNode("view", { class: "instruction-item" }, "4. 如遇到问题请提交反馈")
+          ])
+        ],
+        64
+        /* STABLE_FRAGMENT */
+      ))
+    ]);
+  }
+  const PagesCardCard = /* @__PURE__ */ _export_sfc(_sfc_main$I, [["render", _sfc_render$H], ["__file", "C:/Evaluate/EvaluateProject/pages/Card/Card.vue"]]);
+  const _sfc_main$H = {
+    data() {
+      return {
+        loading: true,
+        records: []
+      };
+    },
+    onLoad() {
+      this.loadRecords();
+    },
+    // 下拉刷新
+    onPullDownRefresh() {
+      this.loadRecords().then(() => {
+        uni.stopPullDownRefresh();
+      });
+    },
+    methods: {
+      async loadRecords() {
+        this.loading = true;
+        try {
+          const res = await er.callFunction({
+            name: "getExchangeRecords",
+            data: {
+              userId: store.userInfo._id
+            }
+          });
+          if (res.result.code === 0) {
+            this.records = res.result.data;
+          } else {
+            uni.showToast({
+              title: res.result.message || "加载失败",
+              icon: "none"
+            });
+          }
+        } catch (error) {
+          formatAppLog("error", "at pages/RedemptionHistory/RedemptionHistory.vue:88", "加载记录失败:", error);
+          uni.showToast({
+            title: "加载失败，请重试",
+            icon: "none"
+          });
+        } finally {
+          this.loading = false;
+        }
+      },
+      getCardTypeText(type) {
+        const types2 = {
+          "times": "次卡",
+          "daily": "日卡",
+          "monthly": "月卡"
+        };
+        return types2[type] || "未知";
+      },
+      formatValue(type, value) {
+        switch (type) {
+          case "times":
+            return `${value}次`;
+          case "daily":
+            return `${value}天`;
+          case "monthly":
+            return `${value}天`;
+          default:
+            return value;
+        }
+      },
+      formatTime(timestamp) {
+        const date = new Date(timestamp);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+      }
+    }
+  };
+  function _sfc_render$G(_ctx, _cache, $props, $setup, $data, $options) {
+    const _component_uni_load_more = resolveEasycom(vue.resolveDynamicComponent("uni-load-more"), __easycom_0$7);
+    const _component_uni_icons = resolveEasycom(vue.resolveDynamicComponent("uni-icons"), __easycom_0$5);
+    return vue.openBlock(), vue.createElementBlock("view", { class: "container" }, [
+      $data.loading ? (vue.openBlock(), vue.createElementBlock("view", {
+        key: 0,
+        class: "loading-container"
+      }, [
+        vue.createVNode(_component_uni_load_more, { status: "loading" })
+      ])) : (vue.openBlock(), vue.createElementBlock(
+        vue.Fragment,
+        { key: 1 },
+        [
+          vue.createCommentVNode(" 没有记录时显示 "),
+          $data.records.length === 0 ? (vue.openBlock(), vue.createElementBlock("view", {
+            key: 0,
+            class: "empty-state"
+          }, [
+            vue.createVNode(_component_uni_icons, {
+              type: "info",
+              size: "64",
+              color: "#999"
+            }),
+            vue.createElementVNode("text", { class: "empty-text" }, "暂无兑换记录")
+          ])) : (vue.openBlock(), vue.createElementBlock(
+            vue.Fragment,
+            { key: 1 },
+            [
+              vue.createCommentVNode(" 记录列表 "),
+              vue.createElementVNode("view", { class: "records-list" }, [
+                (vue.openBlock(true), vue.createElementBlock(
+                  vue.Fragment,
+                  null,
+                  vue.renderList($data.records, (record) => {
+                    return vue.openBlock(), vue.createElementBlock("view", {
+                      key: record._id,
+                      class: "record-item"
+                    }, [
+                      vue.createElementVNode("view", { class: "record-header" }, [
+                        vue.createElementVNode(
+                          "view",
+                          {
+                            class: vue.normalizeClass(["card-type-tag", record.cardType])
+                          },
+                          vue.toDisplayString($options.getCardTypeText(record.cardType)),
+                          3
+                          /* TEXT, CLASS */
+                        ),
+                        vue.createElementVNode(
+                          "text",
+                          { class: "time" },
+                          vue.toDisplayString($options.formatTime(record.redeemTime)),
+                          1
+                          /* TEXT */
+                        )
+                      ]),
+                      vue.createElementVNode("view", { class: "record-content" }, [
+                        vue.createElementVNode("view", { class: "info-row" }, [
+                          vue.createElementVNode("text", { class: "label" }, "卡号："),
+                          vue.createElementVNode(
+                            "text",
+                            { class: "value" },
+                            vue.toDisplayString(record.cardId),
+                            1
+                            /* TEXT */
+                          )
+                        ]),
+                        vue.createElementVNode("view", { class: "info-row" }, [
+                          vue.createElementVNode("text", { class: "label" }, "面值："),
+                          vue.createElementVNode(
+                            "text",
+                            { class: "value" },
+                            vue.toDisplayString($options.formatValue(record.cardType, record.cardValue)),
+                            1
+                            /* TEXT */
+                          )
+                        ])
+                      ])
+                    ]);
+                  }),
+                  128
+                  /* KEYED_FRAGMENT */
+                ))
+              ])
+            ],
+            2112
+            /* STABLE_FRAGMENT, DEV_ROOT_FRAGMENT */
+          ))
+        ],
+        64
+        /* STABLE_FRAGMENT */
+      ))
+    ]);
+  }
+  const PagesRedemptionHistoryRedemptionHistory = /* @__PURE__ */ _export_sfc(_sfc_main$H, [["render", _sfc_render$G], ["__file", "C:/Evaluate/EvaluateProject/pages/RedemptionHistory/RedemptionHistory.vue"]]);
+  const _sfc_main$G = {
+    data() {
+      return {};
+    },
+    methods: {}
+  };
+  function _sfc_render$F(_ctx, _cache, $props, $setup, $data, $options) {
+    return vue.openBlock(), vue.createElementBlock("view");
+  }
+  const PagesRegisterRegister = /* @__PURE__ */ _export_sfc(_sfc_main$G, [["render", _sfc_render$F], ["__file", "C:/Evaluate/EvaluateProject/pages/register/register.vue"]]);
+  let mediaQueryObserver;
+  const _sfc_main$F = {
+    name: "UniMatchMedia",
+    props: {
+      width: {
+        type: [Number, String],
+        default: ""
+      },
+      minWidth: {
+        type: [Number, String],
+        default: ""
+      },
+      maxWidth: {
+        type: [Number, String],
+        default: ""
+      },
+      height: {
+        type: [Number, String],
+        default: ""
+      },
+      minHeight: {
+        type: [Number, String],
+        default: ""
+      },
+      maxHeight: {
+        type: [Number, String],
+        default: ""
+      },
+      orientation: {
+        type: String,
+        default: ""
+      }
+    },
+    data() {
+      return {
+        matches: true
+      };
+    },
+    mounted() {
+      let parent = this.$parent;
+      while (parent.$parent) {
+        parent = parent.$parent;
+      }
+      mediaQueryObserver = uni.createMediaQueryObserver(parent);
+      mediaQueryObserver.observe({
+        width: this.width,
+        maxWidth: this.maxWidth,
+        minWidth: this.minWidth,
+        height: this.height,
+        minHeight: this.minHeight,
+        maxHeight: this.maxHeight,
+        orientation: this.orientation
+      }, (matches) => {
+        this.matches = matches;
+      });
+    },
+    destroyed() {
+      mediaQueryObserver.disconnect();
+    }
+  };
+  function _sfc_render$E(_ctx, _cache, $props, $setup, $data, $options) {
+    return vue.withDirectives((vue.openBlock(), vue.createElementBlock(
+      "view",
+      null,
+      [
+        vue.renderSlot(_ctx.$slots, "default", {}, void 0, true)
+      ],
+      512
+      /* NEED_PATCH */
+    )), [
+      [vue.vShow, $data.matches]
+    ]);
+  }
+  const __easycom_0$4 = /* @__PURE__ */ _export_sfc(_sfc_main$F, [["render", _sfc_render$E], ["__scopeId", "data-v-39bca002"], ["__file", "C:/Users/86135/Downloads/HBuilderX.4.29.2024093009 (1)/HBuilderX/plugins/uniapp-cli-vite/node_modules/@dcloudio/uni-components/lib/uni-match-media/uni-match-media.vue"]]);
   function obj2strClass(obj) {
     let classess = "";
     for (let key in obj) {
@@ -7472,7 +8102,7 @@ ${o3}
     }
   };
   function _sfc_render$D(_ctx, _cache, $props, $setup, $data, $options) {
-    const _component_uni_icons = resolveEasycom(vue.resolveDynamicComponent("uni-icons"), __easycom_0$4);
+    const _component_uni_icons = resolveEasycom(vue.resolveDynamicComponent("uni-icons"), __easycom_0$5);
     return vue.openBlock(), vue.createElementBlock(
       "view",
       {
@@ -8061,7 +8691,7 @@ ${o3}
     }
   };
   function _sfc_render$B(_ctx, _cache, $props, $setup, $data, $options) {
-    const _component_uni_icons = resolveEasycom(vue.resolveDynamicComponent("uni-icons"), __easycom_0$4);
+    const _component_uni_icons = resolveEasycom(vue.resolveDynamicComponent("uni-icons"), __easycom_0$5);
     return vue.openBlock(), vue.createElementBlock("view", { class: "captcha-box" }, [
       vue.createElementVNode("view", { class: "captcha-img-box" }, [
         $data.loging ? (vue.openBlock(), vue.createBlock(_component_uni_icons, {
@@ -8660,8 +9290,8 @@ ${o3}
     }
   };
   class RuleValidator {
-    constructor(message) {
-      this._message = message;
+    constructor(message2) {
+      this._message = message2;
     }
     async validateRule(fieldKey, fieldValue, value, data2, allData) {
       var result = null;
@@ -8677,9 +9307,9 @@ ${o3}
           return result;
         }
       }
-      var message = this._message;
+      var message2 = this._message;
       if (rules2 === void 0) {
-        return message["default"];
+        return message2["default"];
       }
       for (var i2 = 0; i2 < rules2.length; i2++) {
         let rule = rules2[i2];
@@ -8688,7 +9318,7 @@ ${o3}
           label: fieldValue.label || `["${fieldKey}"]`
         });
         if (RuleValidatorHelper[vt2]) {
-          result = RuleValidatorHelper[vt2](rule, value, message);
+          result = RuleValidatorHelper[vt2](rule, value, message2);
           if (result != null) {
             break;
           }
@@ -8709,7 +9339,7 @@ ${o3}
         }
       }
       if (result !== null) {
-        result = message.TAG + result;
+        result = message2.TAG + result;
       }
       return result;
     }
@@ -8717,8 +9347,8 @@ ${o3}
       let result = null;
       try {
         let callbackMessage = null;
-        const res = await rule.validateFunction(rule, value, allData || data2, (message) => {
-          callbackMessage = message;
+        const res = await rule.validateFunction(rule, value, allData || data2, (message2) => {
+          callbackMessage = message2;
         });
         if (callbackMessage || typeof res === "string" && res || res === false) {
           result = this._getMessage(rule, callbackMessage || res, vt2);
@@ -8728,8 +9358,8 @@ ${o3}
       }
       return result;
     }
-    _getMessage(rule, message, vt2) {
-      return formatMessage(rule, message || rule.errorMessage || this._message[vt2] || message["default"]);
+    _getMessage(rule, message2, vt2) {
+      return formatMessage(rule, message2 || rule.errorMessage || this._message[vt2] || message2["default"]);
     }
     _getValidateType(rule) {
       var result = "";
@@ -8754,13 +9384,13 @@ ${o3}
     }
   }
   const RuleValidatorHelper = {
-    required(rule, value, message) {
+    required(rule, value, message2) {
       if (rule.required && isEmptyValue(value, rule.format || typeof value)) {
-        return formatMessage(rule, rule.errorMessage || message.required);
+        return formatMessage(rule, rule.errorMessage || message2.required);
       }
       return null;
     },
-    range(rule, value, message) {
+    range(rule, value, message2) {
       const {
         range,
         errorMessage
@@ -8783,13 +9413,13 @@ ${o3}
         }
       }
       if (!result) {
-        return formatMessage(rule, errorMessage || message["enum"]);
+        return formatMessage(rule, errorMessage || message2["enum"]);
       }
       return null;
     },
-    rangeNumber(rule, value, message) {
+    rangeNumber(rule, value, message2) {
       if (!types.number(value)) {
-        return formatMessage(rule, rule.errorMessage || message.pattern.mismatch);
+        return formatMessage(rule, rule.errorMessage || message2.pattern.mismatch);
       }
       let {
         minimum,
@@ -8800,53 +9430,53 @@ ${o3}
       let min = exclusiveMinimum ? value <= minimum : value < minimum;
       let max = exclusiveMaximum ? value >= maximum : value > maximum;
       if (minimum !== void 0 && min) {
-        return formatMessage(rule, rule.errorMessage || message["number"][exclusiveMinimum ? "exclusiveMinimum" : "minimum"]);
+        return formatMessage(rule, rule.errorMessage || message2["number"][exclusiveMinimum ? "exclusiveMinimum" : "minimum"]);
       } else if (maximum !== void 0 && max) {
-        return formatMessage(rule, rule.errorMessage || message["number"][exclusiveMaximum ? "exclusiveMaximum" : "maximum"]);
+        return formatMessage(rule, rule.errorMessage || message2["number"][exclusiveMaximum ? "exclusiveMaximum" : "maximum"]);
       } else if (minimum !== void 0 && maximum !== void 0 && (min || max)) {
-        return formatMessage(rule, rule.errorMessage || message["number"].range);
+        return formatMessage(rule, rule.errorMessage || message2["number"].range);
       }
       return null;
     },
-    rangeLength(rule, value, message) {
+    rangeLength(rule, value, message2) {
       if (!types.string(value) && !types.array(value)) {
-        return formatMessage(rule, rule.errorMessage || message.pattern.mismatch);
+        return formatMessage(rule, rule.errorMessage || message2.pattern.mismatch);
       }
       let min = rule.minLength;
       let max = rule.maxLength;
       let val = value.length;
       if (min !== void 0 && val < min) {
-        return formatMessage(rule, rule.errorMessage || message["length"].minLength);
+        return formatMessage(rule, rule.errorMessage || message2["length"].minLength);
       } else if (max !== void 0 && val > max) {
-        return formatMessage(rule, rule.errorMessage || message["length"].maxLength);
+        return formatMessage(rule, rule.errorMessage || message2["length"].maxLength);
       } else if (min !== void 0 && max !== void 0 && (val < min || val > max)) {
-        return formatMessage(rule, rule.errorMessage || message["length"].range);
+        return formatMessage(rule, rule.errorMessage || message2["length"].range);
       }
       return null;
     },
-    pattern(rule, value, message) {
+    pattern(rule, value, message2) {
       if (!types["pattern"](rule.pattern, value)) {
-        return formatMessage(rule, rule.errorMessage || message.pattern.mismatch);
+        return formatMessage(rule, rule.errorMessage || message2.pattern.mismatch);
       }
       return null;
     },
-    format(rule, value, message) {
+    format(rule, value, message2) {
       var customTypes = Object.keys(types);
       var format = FORMAT_MAPPING[rule.format] ? FORMAT_MAPPING[rule.format] : rule.format || rule.arrayType;
       if (customTypes.indexOf(format) > -1) {
         if (!types[format](value)) {
-          return formatMessage(rule, rule.errorMessage || message.typeError);
+          return formatMessage(rule, rule.errorMessage || message2.typeError);
         }
       }
       return null;
     },
-    arrayTypeFormat(rule, value, message) {
+    arrayTypeFormat(rule, value, message2) {
       if (!Array.isArray(value)) {
-        return formatMessage(rule, rule.errorMessage || message.typeError);
+        return formatMessage(rule, rule.errorMessage || message2.typeError);
       }
       for (let i2 = 0; i2 < value.length; i2++) {
         const element = value[i2];
-        let formatResult = this.format(rule, element, message);
+        let formatResult = this.format(rule, element, message2);
         if (formatResult !== null) {
           return formatResult;
         }
@@ -9702,7 +10332,7 @@ ${o3}
     }
   };
   function _sfc_render$x(_ctx, _cache, $props, $setup, $data, $options) {
-    const _component_uni_match_media = resolveEasycom(vue.resolveDynamicComponent("uni-match-media"), __easycom_0$5);
+    const _component_uni_match_media = resolveEasycom(vue.resolveDynamicComponent("uni-match-media"), __easycom_0$4);
     const _component_uni_easyinput = resolveEasycom(vue.resolveDynamicComponent("uni-easyinput"), __easycom_2);
     const _component_uni_forms_item = resolveEasycom(vue.resolveDynamicComponent("uni-forms-item"), __easycom_3$3);
     const _component_uni_captcha = resolveEasycom(vue.resolveDynamicComponent("uni-captcha"), __easycom_0$3);
@@ -11380,7 +12010,7 @@ ${o3}
   };
   function _sfc_render$p(_ctx, _cache, $props, $setup, $data, $options) {
     const _component_cloud_image = resolveEasycom(vue.resolveDynamicComponent("cloud-image"), __easycom_0$2);
-    const _component_uni_icons = resolveEasycom(vue.resolveDynamicComponent("uni-icons"), __easycom_0$4);
+    const _component_uni_icons = resolveEasycom(vue.resolveDynamicComponent("uni-icons"), __easycom_0$5);
     return vue.openBlock(), vue.createElementBlock(
       "button",
       {
@@ -11789,7 +12419,7 @@ ${o3}
     }
   };
   function _sfc_render$n(_ctx, _cache, $props, $setup, $data, $options) {
-    const _component_uni_icons = resolveEasycom(vue.resolveDynamicComponent("uni-icons"), __easycom_0$4);
+    const _component_uni_icons = resolveEasycom(vue.resolveDynamicComponent("uni-icons"), __easycom_0$5);
     const _component_uni_badge = resolveEasycom(vue.resolveDynamicComponent("uni-badge"), __easycom_1$1);
     return vue.openBlock(), vue.createElementBlock("view", {
       class: vue.normalizeClass([{ "uni-list-item--disabled": $props.disabled }, "uni-list-item"]),
@@ -12417,7 +13047,7 @@ ${o3}
     }
   };
   function _sfc_render$j(_ctx, _cache, $props, $setup, $data, $options) {
-    const _component_uni_match_media = resolveEasycom(vue.resolveDynamicComponent("uni-match-media"), __easycom_0$5);
+    const _component_uni_match_media = resolveEasycom(vue.resolveDynamicComponent("uni-match-media"), __easycom_0$4);
     const _component_uni_easyinput = resolveEasycom(vue.resolveDynamicComponent("uni-easyinput"), __easycom_2);
     const _component_uni_id_pages_sms_form = resolveEasycom(vue.resolveDynamicComponent("uni-id-pages-sms-form"), __easycom_3$1);
     const _component_uni_popup_captcha = resolveEasycom(vue.resolveDynamicComponent("uni-popup-captcha"), __easycom_5$1);
@@ -13864,7 +14494,7 @@ ${o3}
     }
   };
   function _sfc_render$f(_ctx, _cache, $props, $setup, $data, $options) {
-    const _component_uni_match_media = resolveEasycom(vue.resolveDynamicComponent("uni-match-media"), __easycom_0$5);
+    const _component_uni_match_media = resolveEasycom(vue.resolveDynamicComponent("uni-match-media"), __easycom_0$4);
     const _component_uni_easyinput = resolveEasycom(vue.resolveDynamicComponent("uni-easyinput"), __easycom_2);
     const _component_uni_forms_item = resolveEasycom(vue.resolveDynamicComponent("uni-forms-item"), __easycom_3$3);
     const _component_uni_id_pages_email_form = resolveEasycom(vue.resolveDynamicComponent("uni-id-pages-email-form"), __easycom_3);
@@ -14189,7 +14819,7 @@ ${o3}
     }
   };
   function _sfc_render$e(_ctx, _cache, $props, $setup, $data, $options) {
-    const _component_uni_match_media = resolveEasycom(vue.resolveDynamicComponent("uni-match-media"), __easycom_0$5);
+    const _component_uni_match_media = resolveEasycom(vue.resolveDynamicComponent("uni-match-media"), __easycom_0$4);
     const _component_uni_easyinput = resolveEasycom(vue.resolveDynamicComponent("uni-easyinput"), __easycom_2);
     const _component_uni_forms_item = resolveEasycom(vue.resolveDynamicComponent("uni-forms-item"), __easycom_3$3);
     const _component_uni_id_pages_sms_form = resolveEasycom(vue.resolveDynamicComponent("uni-id-pages-sms-form"), __easycom_3$1);
@@ -14451,7 +15081,7 @@ ${o3}
     }
   };
   function _sfc_render$d(_ctx, _cache, $props, $setup, $data, $options) {
-    const _component_uni_match_media = resolveEasycom(vue.resolveDynamicComponent("uni-match-media"), __easycom_0$5);
+    const _component_uni_match_media = resolveEasycom(vue.resolveDynamicComponent("uni-match-media"), __easycom_0$4);
     const _component_uni_easyinput = resolveEasycom(vue.resolveDynamicComponent("uni-easyinput"), __easycom_2);
     const _component_uni_forms_item = resolveEasycom(vue.resolveDynamicComponent("uni-forms-item"), __easycom_3$3);
     const _component_uni_id_pages_email_form = resolveEasycom(vue.resolveDynamicComponent("uni-id-pages-email-form"), __easycom_3);
@@ -14682,7 +15312,7 @@ ${o3}
     }
   };
   function _sfc_render$b(_ctx, _cache, $props, $setup, $data, $options) {
-    const _component_uni_match_media = resolveEasycom(vue.resolveDynamicComponent("uni-match-media"), __easycom_0$5);
+    const _component_uni_match_media = resolveEasycom(vue.resolveDynamicComponent("uni-match-media"), __easycom_0$4);
     const _component_uni_easyinput = resolveEasycom(vue.resolveDynamicComponent("uni-easyinput"), __easycom_2);
     const _component_uni_forms_item = resolveEasycom(vue.resolveDynamicComponent("uni-forms-item"), __easycom_3$3);
     const _component_uni_forms = resolveEasycom(vue.resolveDynamicComponent("uni-forms"), __easycom_4);
@@ -14835,7 +15465,7 @@ ${o3}
     }
   };
   function _sfc_render$a(_ctx, _cache, $props, $setup, $data, $options) {
-    const _component_uni_match_media = resolveEasycom(vue.resolveDynamicComponent("uni-match-media"), __easycom_0$5);
+    const _component_uni_match_media = resolveEasycom(vue.resolveDynamicComponent("uni-match-media"), __easycom_0$4);
     const _component_uni_easyinput = resolveEasycom(vue.resolveDynamicComponent("uni-easyinput"), __easycom_2);
     const _component_uni_forms_item = resolveEasycom(vue.resolveDynamicComponent("uni-forms-item"), __easycom_3$3);
     const _component_uni_id_pages_agreements = resolveEasycom(vue.resolveDynamicComponent("uni-id-pages-agreements"), __easycom_5$3);
@@ -15069,7 +15699,7 @@ ${o3}
     }
   };
   function _sfc_render$9(_ctx, _cache, $props, $setup, $data, $options) {
-    const _component_uni_match_media = resolveEasycom(vue.resolveDynamicComponent("uni-match-media"), __easycom_0$5);
+    const _component_uni_match_media = resolveEasycom(vue.resolveDynamicComponent("uni-match-media"), __easycom_0$4);
     const _component_uni_easyinput = resolveEasycom(vue.resolveDynamicComponent("uni-easyinput"), __easycom_2);
     const _component_uni_forms_item = resolveEasycom(vue.resolveDynamicComponent("uni-forms-item"), __easycom_3$3);
     const _component_uni_id_pages_sms_form = resolveEasycom(vue.resolveDynamicComponent("uni-id-pages-sms-form"), __easycom_3$1);
@@ -15697,8 +16327,8 @@ ${o3}
       }
     },
     onShow() {
-      store.userInfo._id;
-      const cachedMetrics = uni.getStorageSync("${userId}_metricData");
+      const userId = store.userInfo._id;
+      const cachedMetrics = uni.getStorageSync(`${userId}_metricData`);
       if (cachedMetrics && cachedMetrics.length > 0) {
         this.metrics = cachedMetrics.map((item) => ({
           name: item.name,
@@ -15719,54 +16349,62 @@ ${o3}
     methods: {
       async handleButtonClick() {
         try {
-          const userId = store.userInfo._id;
-          const recordId = uni.getStorageSync("${userId}_recordId");
-          const metricdata = uni.getStorageSync("${userId}_metricData");
-          formatAppLog("log", "at pages/Confirm/Confirm.vue:104", metricdata);
-          const { result } = await er.callFunction({
-            name: "UpdateAssessment",
-            data: {
-              userId,
-              recordId,
-              timestamp: Date.now()
-            }
-          });
-          if (result.success) {
-            if (this.hasMetrics) {
-              uni.showLoading({
-                title: "加载中..."
-              });
-              setTimeout(() => {
-                uni.hideLoading();
-                uni.navigateTo({
-                  url: "/pages/Loading/Loading",
-                  fail: (err2) => {
-                    uni.showToast({
-                      title: "跳转失败，请重试",
-                      icon: "none"
-                    });
-                  }
-                });
-              }, 1e3);
-            } else {
-              uni.navigateTo({
-                url: "/pages/Metric/Metric",
-                fail: (err2) => {
-                  uni.showToast({
-                    title: "跳转失败，请重试",
+          if (this.hasMetrics) {
+            const res = await er.callFunction({
+              name: "getMemberInfo",
+              data: {
+                userId: store.userInfo._id
+              }
+            });
+            if (res.result.code === 0) {
+              const memberInfo = res.result.data;
+              if (memberInfo.membertype === "times") {
+                if (memberInfo.remainingTimes <= 0) {
+                  return uni.showToast({
+                    title: "次数已用完，请充值",
                     icon: "none"
                   });
                 }
+                const deductResult = await er.callFunction({
+                  name: "deductMemberTimes",
+                  data: {
+                    userId: store.userInfo._id
+                  }
+                });
+                if (deductResult.result.code !== 0) {
+                  return uni.showToast({
+                    title: deductResult.result.message || "扣减次数失败",
+                    icon: "none"
+                  });
+                }
+              } else if (memberInfo.memberStatus !== "active") {
+                return uni.showToast({
+                  title: "请先开通会员",
+                  icon: "none"
+                });
+              }
+              uni.navigateTo({
+                url: "/pages/Loading/Loading"
+              });
+            } else {
+              uni.showToast({
+                title: res.result.message || "获取会员信息失败",
+                icon: "none"
               });
             }
           } else {
-            uni.showToast({
-              title: result.message || "操作失败，请重试",
-              icon: "none"
+            uni.navigateTo({
+              url: "/pages/Metric/Metric",
+              fail: (err2) => {
+                uni.showToast({
+                  title: "跳转失败，请重试",
+                  icon: "none"
+                });
+              }
             });
           }
         } catch (error) {
-          formatAppLog("error", "at pages/Confirm/Confirm.vue:153", "操作失败:", error);
+          formatAppLog("error", "at pages/Confirm/Confirm.vue:167", "操作失败:", error);
           uni.showToast({
             title: "操作失败，请重试",
             icon: "none"
@@ -15920,13 +16558,85 @@ ${o3}
       this.toevaluatereport();
     },
     methods: {
-      toevaluatereport() {
-        setTimeout(() => {
-          this.isLoading = false;
-          uni.navigateTo({
-            url: "/pages/Report/Report"
+      async toevaluatereport() {
+        try {
+          const userId = store.userInfo._id;
+          const recordId = uni.getStorageSync(`${userId}_recordId`);
+          formatAppLog("log", "at pages/Loading/Loading.vue:50", "当前记录ID:", recordId);
+          const result = await er.callFunction({
+            name: "UpdateAssessment",
+            data: {
+              userId,
+              recordId,
+              timestamp: Date.now()
+            }
           });
-        }, 2e3);
+          if (result.result.success) {
+            const res = await uni.request({
+              url: "https://api.coze.cn/v1/workflow/run",
+              method: "POST",
+              header: {
+                "Authorization": "Bearer pat_ivZIHe8q33jRGVaFig3ECRoeuI7y9acpqr5t3GcEqxL3H6KhMorM0HSio9Wmar4U",
+                "Content-Type": "application/json"
+              },
+              data: {
+                "workflow_id": "7468203893417459731",
+                "parameters": {
+                  "input": result.result.data[0].text
+                }
+              }
+            });
+            if (res.data.msg === "Success") {
+              try {
+                formatAppLog("log", "at pages/Loading/Loading.vue:80", "API反回的数据", res.data.data);
+                const outerData = JSON.parse(res.data.data);
+                const innerDataStr = outerData.data.replace(/\\\"/g, '"');
+                formatAppLog("log", "at pages/Loading/Loading.vue:86", "处理后的内层数据:", innerDataStr);
+                const innerData = JSON.parse(innerDataStr);
+                const metricsArray = innerData.metrics;
+                const totalscore = innerData.totalscore.score;
+                if (!metricsArray || !Array.isArray(metricsArray) || metricsArray.length === 0) {
+                  throw new Error("未找到有效的metrics数组");
+                }
+                formatAppLog("log", "at pages/Loading/Loading.vue:97", `成功提取到${metricsArray.length}个评估指标`);
+                uni.setStorageSync(`${userId}_metrics`, metricsArray);
+                uni.setStorageSync(`${userId}_score`, totalscore);
+                const ans = await er.callFunction({
+                  name: "UpdateReport",
+                  data: {
+                    userId,
+                    recordId,
+                    token: res.data.token,
+                    metrics: metricsArray
+                  }
+                });
+                if (ans.result.code === 0) {
+                  formatAppLog("log", "at pages/Loading/Loading.vue:115", "报告更新成功");
+                  uni.navigateTo({
+                    url: "/pages/Report/Report"
+                  });
+                } else {
+                  throw new Error("更新报告失败: " + (ans.result.message || "未知错误"));
+                }
+              } catch (parseError) {
+                formatAppLog("error", "at pages/Loading/Loading.vue:124", "数据解析错误:", parseError);
+                formatAppLog("error", "at pages/Loading/Loading.vue:125", "原始数据:", res.data.data);
+                throw new Error("评分数据解析失败，请重试");
+              }
+            } else {
+              throw new Error("API调用失败: " + res.data.msg);
+            }
+          } else {
+            throw new Error("评测更新失败");
+          }
+        } catch (error) {
+          formatAppLog("error", "at pages/Loading/Loading.vue:135", "评测报告处理出错:", error);
+          uni.showToast({
+            title: error.message || "发生错误",
+            icon: "none",
+            duration: 2e3
+          });
+        }
       }
     }
   };
@@ -15964,38 +16674,68 @@ ${o3}
   const _sfc_main$4 = {
     data() {
       return {
-        metrics: [
-          { name: "逻辑思维", score: 95 },
-          { name: "创新能力", score: 88 },
-          { name: "学习效率", score: 92 },
-          { name: "专注度", score: 85 },
-          { name: "记忆力", score: 90 },
-          { name: "理解力", score: 94 }
-        ],
-        evaluationDetails: [
-          {
-            aspect: "逻辑思维",
-            level: "excellent",
-            levelText: "优秀",
-            evaluation: "展现出极强的逻辑分析能力，能够快速理解复杂问题并找到解决方案。在处理多层次信息时表现出色，推理过程严谨。",
-            suggestion: "可以尝试更具挑战性的逻辑题目，或参与高阶思维训练项目来进一步提升能力。"
-          },
-          {
-            aspect: "创新能力",
-            level: "good",
-            levelText: "良好",
-            evaluation: "具有良好的创新思维，能够从多个角度思考问题，提出新颖的解决方案。但在某些领域的创新突破还有提升空间。",
-            suggestion: "建议多接触跨领域知识，培养发散思维，可以通过头脑风暴等方式激发创新潜能。"
-          }
-        ],
-        summary: "整体表现优异，特别是在逻辑思维和理解力方面表现突出。建议继续保持当前的学习态度，并在创新能力方面投入更多关注。建议通过多样化的学习方式和实践来巩固已有优势，同时着重提升相对薄弱的专注度。期待在下一次评测中看到更出色的表现。"
+        metrics: [],
+        evaluationDetails: [],
+        summary: "",
+        assessmentTime: "",
+        totalscore: 0
       };
     },
-    onBackPress(options) {
-      uni.switchTab({
-        url: "/pages/EvaluationHistoryPage/EvaluationHistoryPage"
-      });
-      return true;
+    async onLoad() {
+      const userId = store.userInfo._id;
+      const metricsData = uni.getStorageSync(`${userId}_metrics`);
+      const recordId = uni.getStorageSync(`${userId}_recordId`);
+      formatAppLog("log", "at pages/Report/Report.vue:94", "原始评测数据:", metricsData);
+      if (metricsData && metricsData.length > 0) {
+        this.totalscore = uni.getStorageSync(`${userId}_score`);
+        const res = await er.callFunction({
+          name: "UpdateScore",
+          data: {
+            userId,
+            recordId,
+            score: this.totalscore
+          }
+        });
+        if (res.result.code != 0) {
+          uni.showToast({
+            title: "分数同步出现问题"
+          });
+        }
+        this.metrics = metricsData.map((m2) => ({
+          name: m2.metricname,
+          score: m2.score
+        }));
+        this.evaluationDetails = metricsData.map((m2) => ({
+          aspect: m2.metricname,
+          level: m2.description.level,
+          levelText: m2.description.level,
+          evaluation: m2.description.evaluation,
+          suggestion: m2.description.suggestion
+        }));
+        this.assessmentTime = this.formatDate(/* @__PURE__ */ new Date());
+        const totalItem = metricsData.find((m2) => m2.metricId === "总分" || m2.metricname === "总体评价");
+        if (totalItem) {
+          this.summary = totalItem.description.evaluation;
+        } else {
+          const majorPoints = metricsData.map((m2) => {
+            const aspect = m2.metricname;
+            const key = m2.description.evaluation.split("，")[0];
+            return `${aspect}：${key}`;
+          }).join("；");
+          this.summary = `总体表现良好，得分${this.totalscore}分。${majorPoints}。建议关注细节描述，增加专业术语，并加强与用户痛点的关联。`;
+        }
+        formatAppLog("log", "at pages/Report/Report.vue:147", "处理后的评测数据:", {
+          metrics: this.metrics,
+          details: this.evaluationDetails,
+          totalscore: this.totalscore,
+          summary: this.summary
+        });
+      } else {
+        uni.showToast({
+          title: "未找到评测数据",
+          icon: "none"
+        });
+      }
     },
     methods: {
       getScoreColor(score) {
@@ -16006,6 +16746,18 @@ ${o3}
         if (score >= 70)
           return "#EC4899";
         return "#EF4444";
+      },
+      formatDate(date) {
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, "0");
+        const day = date.getDate().toString().padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      },
+      onBackPress({ from }) {
+        uni.switchTab({
+          url: "/pages/EvaluationHistoryPage/EvaluationHistoryPage"
+        });
+        return true;
       }
     }
   };
@@ -16023,7 +16775,13 @@ ${o3}
               vue.createElementVNode("view", { class: "score-circle-outer" }, [
                 vue.createElementVNode("view", { class: "score-circle-inner" }, [
                   vue.createElementVNode("view", { class: "score-content" }, [
-                    vue.createElementVNode("view", { class: "score-number" }, "92"),
+                    vue.createElementVNode(
+                      "view",
+                      { class: "score-number" },
+                      vue.toDisplayString($data.totalscore),
+                      1
+                      /* TEXT */
+                    ),
                     vue.createElementVNode("view", { class: "score-label" }, "总分")
                   ])
                 ])
@@ -16031,7 +16789,13 @@ ${o3}
             ])
           ]),
           vue.createElementVNode("view", { class: "score-info" }, [
-            vue.createElementVNode("view", { class: "score-date" }, "评测时间：2024-01-24")
+            vue.createElementVNode(
+              "view",
+              { class: "score-date" },
+              "评测时间：" + vue.toDisplayString($data.assessmentTime),
+              1
+              /* TEXT */
+            )
           ])
         ]),
         vue.createCommentVNode(" 分项指标评分 "),
@@ -16900,8 +17664,8 @@ ${o3}
   __definePage("pages/details/details", PagesDetailsDetails);
   __definePage("pages/Login/Login", PagesLoginLogin);
   __definePage("pages/UserData/UserData", PagesUserDataUserData);
-  __definePage("pages/VerifyCode/VerifyCode", PagesVerifyCodeVerifyCode);
-  __definePage("pages/WechatLogin/WechatLogin", PagesWechatLoginWechatLogin);
+  __definePage("pages/Card/Card", PagesCardCard);
+  __definePage("pages/RedemptionHistory/RedemptionHistory", PagesRedemptionHistoryRedemptionHistory);
   __definePage("pages/register/register", PagesRegisterRegister);
   __definePage("uni_modules/uni-id-pages/pages/register/register", UniModulesUniIdPagesPagesRegisterRegister);
   __definePage("uni_modules/uni-id-pages/pages/login/login-withoutpwd", UniModulesUniIdPagesPagesLoginLoginWithoutpwd);
@@ -16975,7 +17739,7 @@ ${o3}
     function onDBError({
       code,
       // 错误码详见https://uniapp.dcloud.net.cn/uniCloud/clientdb?id=returnvalue
-      message
+      message: message2
     }) {
     }
     if (er.onRefreshToken) {

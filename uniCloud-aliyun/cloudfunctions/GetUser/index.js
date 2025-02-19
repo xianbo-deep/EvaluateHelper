@@ -16,7 +16,7 @@ exports.main = async (event, context) => {
 			return{
 				code:0,
 				data:{
-					avaterUrl: res.data[0].avaterUrl,
+					avatarUrl: res.data[0].avatarUrl,
 					nickname: res.data[0].nickname,
 					email: res.data[0].email,
 					bio: res.data[0].bio,

@@ -1,0 +1,1 @@
+{"fields":{"orderId":{"type":"string","primary":true},"userId":{"type":"string"},"name":{"type":"string"},"orderAmount":{"type":"number"},"createTime":{"type":"timestamp"},"paymentTime":{"type":"timestamp"},"recordId":{"type":"string"},"cancelTime":{"type":"timestamp"}}}

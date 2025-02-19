@@ -32,6 +32,7 @@
 </template>
 
 <script>
+import { store } from '/uni_modules/uni-id-pages/common/store.js';	
 export default {
   data() {
     return {
@@ -42,14 +43,104 @@ export default {
     this.toevaluatereport();
   },
   methods: {
-    toevaluatereport() {
-      setTimeout(() => {
-        this.isLoading = false;
-        uni.navigateTo({
-          url: '/pages/Report/Report',
+async toevaluatereport() {
+    try {
+        const userId = store.userInfo._id;
+        const recordId = uni.getStorageSync(`${userId}_recordId`);
+        console.log('当前记录ID:', recordId);
+        
+        const result = await uniCloud.callFunction({
+            name: 'UpdateAssessment',
+            data: {
+                userId,
+                recordId,
+                timestamp: Date.now()
+            }
         });
-      }, 2000);
-    },
+                
+        if (result.result.success) {
+           
+            
+            const res = await uni.request({
+                url: 'https://api.coze.cn/v1/workflow/run',
+                method: 'POST',
+                header:{
+                    "Authorization": "Bearer pat_ivZIHe8q33jRGVaFig3ECRoeuI7y9acpqr5t3GcEqxL3H6KhMorM0HSio9Wmar4U",
+                    "Content-Type": "application/json"
+                },
+                data:{
+                    "workflow_id":"7468203893417459731",
+                    "parameters": {
+                        "input": result.result.data[0].text
+                    }		
+                }
+            });
+            if(res.data.msg === 'Success'){
+                try {
+					console.log('API反回的数据',res.data.data);
+                    // 解析第一层JSON
+                    const outerData = JSON.parse(res.data.data);
+                    
+                    // 获取内层数据，直接替换转义字符
+                    const innerDataStr = outerData.data.replace(/\\\"/g, '"');
+                    console.log('处理后的内层数据:', innerDataStr);
+                    
+                    const innerData = JSON.parse(innerDataStr);
+                    
+                    // 获取metrics数组
+                    const metricsArray = innerData.metrics;
+                    const totalscore = innerData.totalscore.score;
+                    if (!metricsArray || !Array.isArray(metricsArray) || metricsArray.length === 0) {
+                        throw new Error('未找到有效的metrics数组');
+                    }
+                    
+                    console.log(`成功提取到${metricsArray.length}个评估指标`);
+                    
+                    // 存储数据到本地
+                    uni.setStorageSync(`${userId}_metrics`, metricsArray);
+                    uni.setStorageSync(`${userId}_score`, totalscore);
+                   
+                    // 调用云函数更新报告
+                    const ans = await uniCloud.callFunction({
+                        name: 'UpdateReport',
+                        data:{
+                            userId,
+                            recordId,
+                            token: res.data.token,
+                            metrics: metricsArray
+                        }
+                    });
+                    
+                    if(ans.result.code === 0){
+                        console.log('报告更新成功');
+                        uni.navigateTo({
+                            url: '/pages/Report/Report'
+                        });
+                    } else {
+                        throw new Error('更新报告失败: ' + (ans.result.message || '未知错误'));
+                    }
+                    
+                } catch (parseError) {
+                    console.error('数据解析错误:', parseError);
+                    console.error('原始数据:', res.data.data);
+                    throw new Error('评分数据解析失败，请重试');
+                }
+            } else {
+                throw new Error('API调用失败: ' + res.data.msg);
+            }
+        } else {
+            throw new Error('评测更新失败');
+        }
+    } catch (error) {
+        console.error('评测报告处理出错:', error);
+        uni.showToast({
+            title: error.message || '发生错误',
+            icon: 'none',
+            duration: 2000
+        });
+    } 
+}
+	
   },
 };
 </script>

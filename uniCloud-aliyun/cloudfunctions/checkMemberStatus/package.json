@@ -1,0 +1,17 @@
+{
+ "name": "checkMemberStatus",
+ "version": "1.0.0",
+ "description": "定时检查会员状态",
+ "cloudfunction-config": {
+   "concurrency": 1,
+   "memorySize": 256,
+   "timeout": 600,
+   "triggers": [
+     {
+       "name": "checkMemberStatus",
+       "type": "timer",
+       "config": "0 0 * * * * *"  
+     }
+   ]
+ }
+}

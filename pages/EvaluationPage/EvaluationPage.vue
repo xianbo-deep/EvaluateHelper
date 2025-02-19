@@ -124,13 +124,26 @@ export default {
     },
 
     async submitForm() {
+		const userId = store.userInfo._id;
+		console.log(userId)
           try {
             if (!this.formData.LocalfileUrl) {
               uni.showToast({ title: '请先上传视频', icon: 'none' });
               return;
             }
+			const cachedmetricdata = uni.getStorageSync(`${userId}_metricData`);
+			if(!cachedmetricdata){
+				uni.showToast({
+					title:'请先设置指标',
+					icon:'none',
+					duration: 2000
+				});
+				uni.navigateTo({
+					url: '/pages/Metric/Metric'
+				});
+			}
             uni.showLoading({ title: '提交中' });
-            const userId = store.userInfo._id;
+            
             
             const uploadResult = await uniCloud.uploadFile({
               filePath: this.formData.LocalfileUrl,
@@ -166,7 +179,7 @@ export default {
                 });
                 
                 if (res.result.success) {
-                  uni.setStorageSync('${userId}_recordId',res.result.data.recordId);
+                  uni.setStorageSync(`${userId}_recordId`,res.result.data.recordId);
                   uni.showToast({ title: '已提交', icon: 'success' });
                   uni.navigateTo({ url: '/pages/Confirm/Confirm' });
                 } else {

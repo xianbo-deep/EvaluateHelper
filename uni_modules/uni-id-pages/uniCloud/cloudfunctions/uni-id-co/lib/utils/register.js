@@ -210,7 +210,13 @@ async function postRegister(params = {}) {
     lastLoginTime: null, // 初次注册，没有登录时间
     status: 'active', // 默认状态为 active
     phone: user.mobile || '', // 手机号
-    token: token // 注册后生成的 token
+    token: token, // 注册后生成的 token
+	bio: '',                       // 用户简介默认为空
+	  // 会员相关字段设置默认值
+    memberStatus: 'none',          // 默认非会员
+	membertype: 'none',            // 默认非会员类型
+	remainingValue: 0,              // 默认剩余值为0
+	usedTrial: false
   });
   const selectTable = db.collection('Select');
     let nextId = 1;

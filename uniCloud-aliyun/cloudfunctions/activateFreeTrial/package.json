@@ -1,0 +1,7 @@
+{
+  "name": "activateFreeTrial",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

@@ -1,0 +1,1 @@
+{"bsonType":"object","properties":{"metricId":{"bsonType":"string","description":"指标 ID","uniqueItems":true},"agentId":{"bsonType":"string","description":"代理 ID"},"description":{"bsonType":"string","description":"描述信息"},"metricname":{"bsonType":"string","description":"指标名称"}},"required":["metricId","metricname"]}

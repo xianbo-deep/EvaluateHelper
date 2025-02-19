@@ -77,7 +77,7 @@ export default {
   },
   onShow(){
 	const userId = store.userInfo._id; 
-    const cachedMetrics = uni.getStorageSync('${userId}_metricData');
+    const cachedMetrics = uni.getStorageSync(`${userId}_metricData`);
     if (cachedMetrics && cachedMetrics.length > 0) {
       this.metrics = cachedMetrics.map(item => ({
         name: item.name,
@@ -98,55 +98,69 @@ export default {
   methods: {
     async handleButtonClick() {
       try {
-        const userId = store.userInfo._id;
-        const recordId = uni.getStorageSync('${userId}_recordId');
-        const metricdata = uni.getStorageSync('${userId}_metricData');
-		console.log(metricdata)
-        // 调用云函数更新评测时间
-        const { result } = await uniCloud.callFunction({
-          name: 'UpdateAssessment',
-          data: {
-            userId,
-            recordId,
-            timestamp: Date.now()
-          }
-        });
+        if (this.hasMetrics) {
+          const res = await uniCloud.callFunction({
+            name: 'getMemberInfo',
+            data: {
+              userId: store.userInfo._id
+            }
+          });
     
-        if (result.success) {
-          if (this.hasMetrics) {
-            // 如果有指标数据，先跳转到加载页面
-            uni.showLoading({
-              title: '加载中...'
-            });
+          if (res.result.code === 0) {
+            const memberInfo = res.result.data;
             
-            setTimeout(() => {
-              uni.hideLoading();
-              uni.navigateTo({
-                url: '/pages/Loading/Loading',
-                fail: (err) => {
-                  uni.showToast({
-                    title: '跳转失败，请重试',
-                    icon: 'none'
-                  });
-                }
-              });
-            }, 1000);
-          } else {
-            // 如果没有指标数据，跳转到指标页面
-            uni.navigateTo({
-              url: '/pages/Metric/Metric',
-              fail: (err) => {
-                uni.showToast({
-                  title: '跳转失败，请重试',
+            // 检查是否是次卡会员
+            if (memberInfo.membertype === 'times') {
+              if (memberInfo.remainingTimes <= 0) {
+                return uni.showToast({
+                  title: '次数已用完，请充值',
                   icon: 'none'
                 });
               }
+              
+              // 扣减次数
+              const deductResult = await uniCloud.callFunction({
+                name: 'deductMemberTimes',
+                data: {
+                  userId: store.userInfo._id
+                }
+              });
+              
+              if (deductResult.result.code !== 0) {
+                return uni.showToast({
+                  title: deductResult.result.message || '扣减次数失败',
+                  icon: 'none'
+                });
+              }
+            } 
+            // 如果不是次卡会员，检查会员是否有效
+            else if (memberInfo.memberStatus !== 'active') {
+              return uni.showToast({
+                title: '请先开通会员',
+                icon: 'none'
+              });
+            }
+    
+            // 导航到加载页面
+            uni.navigateTo({
+              url: '/pages/Loading/Loading'
+            });
+          } else {
+            uni.showToast({
+              title: res.result.message || '获取会员信息失败',
+              icon: 'none'
             });
           }
         } else {
-          uni.showToast({
-            title: result.message || '操作失败，请重试',
-            icon: 'none'
+          // 如果没有指标数据，跳转到指标页面
+          uni.navigateTo({
+            url: '/pages/Metric/Metric',
+            fail: (err) => {
+              uni.showToast({
+                title: '跳转失败，请重试',
+                icon: 'none'
+              });
+            }
           });
         }
       } catch (error) {

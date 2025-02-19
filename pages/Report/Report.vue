@@ -13,7 +13,7 @@
             <view class="score-circle-outer">
               <view class="score-circle-inner">
                 <view class="score-content">
-                  <view class="score-number">92</view>
+                  <view class="score-number">{{totalscore}}</view>
                   <view class="score-label">总分</view>
                 </view>
               </view>
@@ -21,7 +21,7 @@
           </view>
         </view>
         <view class="score-info">
-          <view class="score-date">评测时间：2024-01-24</view>
+          <view class="score-date">评测时间：{{assessmentTime}}</view>
         </view>
       </view>
 
@@ -73,50 +73,112 @@
 </template>
 
 <script>
+import { store } from '/uni_modules/uni-id-pages/common/store.js';
+
 export default {
-  data() {
-    return {
-      metrics: [
-        { name: '逻辑思维', score: 95 },
-        { name: '创新能力', score: 88 },
-        { name: '学习效率', score: 92 },
-        { name: '专注度', score: 85 },
-        { name: '记忆力', score: 90 },
-        { name: '理解力', score: 94 }
-      ],
-      evaluationDetails: [
-        {
-          aspect: '逻辑思维',
-          level: 'excellent',
-          levelText: '优秀',
-          evaluation: '展现出极强的逻辑分析能力，能够快速理解复杂问题并找到解决方案。在处理多层次信息时表现出色，推理过程严谨。',
-          suggestion: '可以尝试更具挑战性的逻辑题目，或参与高阶思维训练项目来进一步提升能力。'
-        },
-        {
-          aspect: '创新能力',
-          level: 'good',
-          levelText: '良好',
-          evaluation: '具有良好的创新思维，能够从多个角度思考问题，提出新颖的解决方案。但在某些领域的创新突破还有提升空间。',
-          suggestion: '建议多接触跨领域知识，培养发散思维，可以通过头脑风暴等方式激发创新潜能。'
+    data() {
+        return {
+            metrics: [],
+            evaluationDetails: [],
+            summary: '',
+            assessmentTime: '',
+            totalscore: 0
         }
-      ],
-      summary: '整体表现优异，特别是在逻辑思维和理解力方面表现突出。建议继续保持当前的学习态度，并在创新能力方面投入更多关注。建议通过多样化的学习方式和实践来巩固已有优势，同时着重提升相对薄弱的专注度。期待在下一次评测中看到更出色的表现。'
+    },
+    async onLoad() {
+        const userId = store.userInfo._id;
+        
+        // 获取存储的评测数据
+        const metricsData = uni.getStorageSync(`${userId}_metrics`);
+		const recordId = uni.getStorageSync(`${userId}_recordId`);
+        console.log('原始评测数据:', metricsData);
+        
+        if (metricsData && metricsData.length > 0) {
+            // 设置总分（计算所有指标的平均分）
+            this.totalscore = uni.getStorageSync(`${userId}_score`);
+            const res =await uniCloud.callFunction({
+            	name: 'UpdateScore',
+				data:{
+					userId: userId,
+					recordId: recordId,
+					score: this.totalscore
+				}
+            });
+			if(res.result.code != 0){
+				uni.showToast({
+					title:'分数同步出现问题'
+				})
+			}
+            // 格式化指标数据用于显示
+            this.metrics = metricsData.map(m => ({
+                name: m.metricname,
+                score: m.score
+            }));
+            
+            // 格式化详细评价数据 - 直接使用API返回的数据
+            this.evaluationDetails = metricsData.map(m => ({
+                aspect: m.metricname,
+                level: m.description.level,
+                levelText: m.description.level,
+                evaluation: m.description.evaluation, 
+                suggestion: m.description.suggestion
+            }));
+            
+            // 设置评测时间
+            this.assessmentTime = this.formatDate(new Date());
+            
+            // 生成总体评价 - 整合四个指标的评价
+            const totalItem = metricsData.find(m => m.metricId === '总分' || m.metricname === '总体评价');
+            if (totalItem) {
+                // 如果有总分项，直接使用
+                this.summary = totalItem.description.evaluation;
+            } else {
+                // 将所有指标的评价整合为一段总结
+                const majorPoints = metricsData.map(m => {
+                    const aspect = m.metricname;
+                    const key = m.description.evaluation.split('，')[0]; // 取评价的第一部分作为关键点
+                    return `${aspect}：${key}`;
+                }).join('；');
+                
+                // 构建总结性评价
+                this.summary = `总体表现良好，得分${this.totalscore}分。${majorPoints}。建议关注细节描述，增加专业术语，并加强与用户痛点的关联。`;
+            }
+            
+            console.log('处理后的评测数据:', {
+                metrics: this.metrics,
+                details: this.evaluationDetails,
+                totalscore: this.totalscore,
+                summary: this.summary
+            });
+        } else {
+            uni.showToast({
+                title: '未找到评测数据',
+                icon: 'none'
+            });
+        }
+    },
+    methods: {
+        getScoreColor(score) {
+            if (score >= 90) return '#6366F1';
+            if (score >= 80) return '#8B5CF6';
+            if (score >= 70) return '#EC4899';
+            return '#EF4444';
+        },
+        
+        formatDate(date) {
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        },
+        
+        onBackPress({from}) {
+            uni.switchTab({
+                url: "/pages/EvaluationHistoryPage/EvaluationHistoryPage",
+            });
+            return true;
+        }
     }
-  },
-  onBackPress(options) {
-      uni.switchTab({
-      url:"/pages/EvaluationHistoryPage/EvaluationHistoryPage",
-    });
-    return true;
-  },
-  methods: {
-    getScoreColor(score) {
-      if (score >= 90) return '#6366F1';
-      if (score >= 80) return '#8B5CF6';
-      if (score >= 70) return '#EC4899';
-      return '#EF4444';
-    }
-  }
 }
 </script>
 
