@@ -1,0 +1,7 @@
+{
+  "name": "activateCard",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

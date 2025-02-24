@@ -168,26 +168,192 @@ function checkLoginUserRecord (user) {
   }
 }
 
-async function thirdPartyLogin (params = {}) {
-  const {
-    user
-  } = params
-  return {
-    mobileConfirmed: !!user.mobile_confirmed,
-    emailConfirmed: !!user.email_confirmed
-  }
-}
-
 async function postLogin(params = {}) {
   const {
     user,
     extraData,
     isThirdParty = false
   } = params;
-
   const { clientIP } = this.getUniversalClientInfo();
   const uniIdToken = this.getUniversalUniIdToken();
   const uid = user._id;
+  
+  // 检查是否为管理员
+  const db = uniCloud.database();
+  const adminTable = db.collection('Admin');
+  const adminUser = await adminTable.where({ adminId: uid }).get();
+  
+  // 检查是否为普通用户
+  const userTable = db.collection('User');
+  const normalUser = await userTable.where({ userId: uid }).get();
+  
+  // 判断用户类型和状态
+  let userType = null;
+  if (adminUser.data.length > 0) {
+    userType = 'admin';
+    // 检查管理员状态
+    if (adminUser.data[0].status !== 'active') {
+      throw {
+        errCode: 'ADMIN_ACCOUNT_BANNED',
+        errMsg: '管理员账号已被禁用'
+      };
+    }
+  } else if (normalUser.data.length > 0) {
+    userType = 'user';
+    // 检查用户状态
+    if (normalUser.data[0].status !== 'active') {
+      throw {
+        errCode: 'USER_ACCOUNT_BANNED',
+        errMsg: '用户账号已被禁用'
+      };
+    }
+  } else {
+    // 新用户，默认为普通用户
+    userType = 'user';
+  }
+
+  // 生成新的登录 Token
+  const createTokenRes = await this.uniIdCommon.createToken({
+    uid
+  });
+  const { errCode, token, tokenExpired } = createTokenRes;
+  if (errCode) {
+    throw createTokenRes;
+  }
+
+  // 如果存在之前的 Token，进行登出
+  if (uniIdToken) {
+    try {
+      await logout.call(this);
+    } catch (error) {}
+  }
+
+  const now = Date.now();
+
+  if (userType === 'admin') {
+    // 更新管理员信息
+    await adminTable.where({ adminId: uid }).update({
+      lastLoginTime: now,
+      ...(extraData.password ? { password: extraData.password } : {})
+    });
+  } else if (userType === 'user') { // 明确指定只有普通用户才处理这部分
+    // 处理普通用户
+    if (normalUser.data.length > 0) {
+      // 更新已存在用户
+      await userTable.doc(normalUser.data[0]._id).update({
+        lastLoginTime: now,
+        token: token,
+        ...(extraData.password ? { password: extraData.password } : {})
+      });
+    } else {
+      // 创建新用户
+      await userTable.add({
+        userId: uid,
+        nickname: user.nickname || '',
+        avatarUrl: user.avatarUrl || '',
+        email: user.email || '',
+        registerTime: new Date(user.register_date || now),
+        password: extraData.password || '',
+        lastLoginTime: new Date(now),
+        status: 'active',
+        phone: user.mobile || '',
+        token: token,
+        memberStatus: 'none',
+        membertype: 'none',
+        remainingDays: 0,
+        remainingTimes: 0,
+        bio: '',
+        usedTrial: false
+      });
+    }
+  }if (userType === 'admin') {
+  // 更新管理员信息
+  await adminTable.where({ adminId: uid }).update({
+    lastLoginTime: now,
+    ...(extraData.password ? { password: extraData.password } : {})
+  });
+} else if (userType === 'user') { // 明确指定只有普通用户才处理这部分
+  // 处理普通用户
+  if (normalUser.data.length > 0) {
+    // 更新已存在用户
+    await userTable.doc(normalUser.data[0]._id).update({
+      lastLoginTime: now,
+      token: token,
+      ...(extraData.password ? { password: extraData.password } : {})
+    });
+  } else {
+    // 创建新用户
+    await userTable.add({
+      userId: uid,
+      nickname: user.nickname || '',
+      avatarUrl: user.avatarUrl || '',
+      email: user.email || '',
+      registerTime: new Date(user.register_date || now),
+      password: extraData.password || '',
+      lastLoginTime: new Date(now),
+      status: 'active',
+      phone: user.mobile || '',
+      token: token,
+      memberStatus: 'none',
+      membertype: 'none',
+      remainingDays: 0,
+      remainingTimes: 0,
+      bio: '',
+      usedTrial: false
+    });
+  }
+}
+
+  // 更新通用用户集合
+  await userCollection.doc(uid).update({
+    last_login_date: now,
+    last_login_ip: clientIP,
+    ...extraData
+  });
+
+  // 记录登录日志
+  await this.middleware.uniIdLog({
+    data: {
+      user_id: uid
+    },
+    type: LOG_TYPE.LOGIN
+  });
+
+  // 返回登录结果
+  return {
+    errCode: 0,
+    newToken: {
+      token,
+      tokenExpired
+    },
+    uid,
+    userType, // 添加用户类型标识
+    ...(isThirdParty ? await thirdPartyLogin({ user }) : {}),
+    passwordConfirmed: !!user.password
+  };
+}
+async function postLogin(params = {}) {
+  const {
+    user,
+    extraData,
+    isThirdParty = false
+  } = params;
+  const { clientIP } = this.getUniversalClientInfo();
+  const uniIdToken = this.getUniversalUniIdToken();
+  const uid = user._id;
+  
+  // 首先检查用户在 User 表中的状态
+  const db = uniCloud.database();
+  const userTable = db.collection('User');
+  const existingUser = await userTable.where({ userId: uid }).get();
+  
+  // 如果用户存在且状态不是 active，拒绝登录
+  if (existingUser.data.length > 0 && existingUser.data[0].status !== 'active') {
+    throw {
+      errCode: 'USER_ACCOUNT_BANNED',
+      errMsg: '账号已被禁用'
+    };
+  }
 
   // 更新用户最后登录时间和 IP
   const updateData = {
@@ -200,7 +366,6 @@ async function postLogin(params = {}) {
   const createTokenRes = await this.uniIdCommon.createToken({
     uid
   });
-
   const { errCode, token, tokenExpired } = createTokenRes;
   if (errCode) {
     throw createTokenRes;
@@ -216,32 +381,31 @@ async function postLogin(params = {}) {
   // 更新原始用户表中的数据
   await userCollection.doc(uid).update(updateData);
 
-  // **新增：同步登录信息到自定义的 User 表**
-  const db = uniCloud.database();
-  const userTable = db.collection('User'); // 替换为你的表名
-  const existingUser = await userTable.where({ userId: uid }).get();
-
+  // 更新或创建 User 表中的记录
   if (existingUser.data.length > 0) {
-    // 如果用户已存在于 User 表中，更新登录信息
+    // 用户已存在，更新登录信息
     await userTable.doc(existingUser.data[0]._id).update({
-      lastLoginTime: Date.now(), // 更新登录时间
-      status: 'active', // 设置状态为 active
-      token: token ,// 更新最新的 Token
-	  ...(extraData.password ? { password: extraData.password } : {})
+      lastLoginTime: Date.now(),
+      token: token,
+      ...(extraData.password ? { password: extraData.password } : {})
     });
   } else {
-    // 如果用户不存在于 User 表中，插入新的记录
+    // 用户不存在，创建新记录
     await userTable.add({
       userId: uid,
-      nickname: user.nickname || '', // 从原始用户数据中获取昵称
-      avatarUrl: user.avatarUrl || '', // 从原始用户数据中获取头像
-      email: user.email || '', // 从原始用户数据中获取邮箱
-      registerTime: user.register_date || Date.now(), // 注册时间
-      password: extraData.password || '', // 如果需要存储密码（加密后）
-      lastLoginTime: Date.now(), // 本次登录时间
-      status: 'active', // 默认设置为 active
-      phone: user.mobile || '', // 用户手机号
-      token: token // 登录后生成的 Token
+      nickname: user.nickname || '',
+      avatarUrl: user.avatarUrl || '',
+      email: user.email || '',
+      registerTime: user.register_date || Date.now(),
+      password: extraData.password || '',
+      lastLoginTime: Date.now(),
+      status: 'active',
+      phone: user.mobile || '',
+      token: token,
+      memberStatus: 'none',
+      membertype: 'none',
+      remainingValue: 0,
+      bio: ''
     });
   }
 
@@ -271,7 +435,6 @@ async function postLogin(params = {}) {
     passwordConfirmed: !!user.password
   };
 }
-
 
 module.exports = {
   preLogin,

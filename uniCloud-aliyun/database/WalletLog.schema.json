@@ -1,0 +1,1 @@
+{"fields":{"logId":{"type":"string","primary":true},"userId":{"type":"string"},"operationTime":{"type":"timestamp"},"operationType":{"type":"string"},"operationAmount":{"type":"number"},"remark":{"type":"string"}}}

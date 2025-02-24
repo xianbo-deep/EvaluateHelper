@@ -65,24 +65,85 @@
 
 <script>
 import { store } from '/uni_modules/uni-id-pages/common/store.js';	
-
 export default {
   methods: {
-    navigateTo(moduleId) {
+    async navigateTo(moduleId) {
       // 检查登录状态
       if (!store.hasLogin) {
         uni.showToast({
           title: '请先登录',
           icon: 'none'
         });
-        // 跳转到我的页面
         uni.switchTab({
           url: '/pages/MyPage/MyPage'
         });
         return;
       }
 
-      // 已登录，执行正常导航
+      // 如果是开始测评，检查会员状态
+      if (moduleId === 'start-test') {
+        try {
+			uni.showLoading({
+				title:'正在检查会员状态'
+			});
+          const res = await uniCloud.callFunction({
+            name: 'getMemberInfo',
+            data: {
+              userId: store.userInfo._id
+            }
+          });
+		const code = res.result.code;
+		const data = res.result.data;
+          if (code !== 0) {
+            uni.showToast({
+              title: message || '获取会员信息失败',
+              icon: 'none'
+            });
+            return;
+          }
+		uni.hideLoading();
+          // 检查会员状态
+          if (data.memberStatus !== 'active') {
+            uni.showModal({
+              title: '需要开通会员',
+              content: '开始测评需要开通会员，是否立即开通？',
+              success: (res) => {
+                if (res.confirm) {
+                  uni.navigateTo({
+                    url: '/pages/Card/Card'
+                  });
+                }
+              }
+            });
+            return;
+          }
+
+          // 检查次卡剩余次数
+          if (data.membertype === 'times' && data.remainingTimes <= 0) {
+            uni.showModal({
+              title: '次数已用完',
+              content: '您的测评次数已用完，是否购买新的次数？',
+              success: (res) => {
+                if (res.confirm) {
+                  uni.navigateTo({
+                    url: '/pages/Card/Card'
+                  });
+                }
+              }
+            });
+            return;
+          }
+        } catch (e) {
+          console.error('获取会员信息失败:', e);
+          uni.showToast({
+            title: '系统错误，请稍后再试',
+            icon: 'none'
+          });
+          return;
+        }
+      }
+
+      // 已登录且会员检查通过，执行正常导航
       const routes = {
         'start-test': '/pages/EvaluationPage/EvaluationPage',
         'my-reports': '/pages/EvaluationHistoryPage/EvaluationHistoryPage'

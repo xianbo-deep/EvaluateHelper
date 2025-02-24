@@ -108,6 +108,7 @@ async function postRegister(params = {}) {
 
   merge(user, extraData);
 
+  // 设置注册环境信息
   const registerChannel = channel || scene;
   user.register_env = {
     appid: appId || '',
@@ -116,13 +117,14 @@ async function postRegister(params = {}) {
     app_name: appName || '',
     app_version: appVersion || '',
     app_version_code: appVersionCode || '',
-    channel: registerChannel ? registerChannel + '' : '', // channel可能为数字，统一存为字符串
+    channel: registerChannel ? registerChannel + '' : '',
     client_ip: clientIP || ''
   };
 
   user.register_date = Date.now();
   user.dcloud_appid = [appId];
 
+  // 格式化用户名和邮箱
   if (user.username) {
     user.username = user.username.toLowerCase();
   }
@@ -131,28 +133,32 @@ async function postRegister(params = {}) {
   }
 
   const {
-    autoSetInviteCode, // 注册时自动设置邀请码
-    forceInviteCode, // 必须有邀请码才允许注册，注意此逻辑不可对admin生效
-    userRegisterDefaultRole // 用户注册时配置的默认角色
+    autoSetInviteCode,
+    forceInviteCode,
+    userRegisterDefaultRole
   } = this.config;
+
+  // 设置邀请码
   if (autoSetInviteCode) {
     user.my_invite_code = await getValidInviteCode();
   }
 
-  // 如果用户注册默认角色配置存在且不为空数组
+  // 设置用户角色
   if (userRegisterDefaultRole && userRegisterDefaultRole.length) {
-    // 将用户已有的角色和配置的默认角色合并成一个数组，并去重
     user.role = Array.from(new Set([...(user.role || []), ...userRegisterDefaultRole]));
   }
 
+  // 判断是否为管理员
   const isAdmin = user.role && user.role.includes('admin');
 
+  // 检查邀请码（仅对普通用户）
   if (forceInviteCode && !isAdmin && !inviteCode) {
     throw {
       errCode: ERROR.INVALID_INVITE_CODE
     };
   }
 
+  // 处理邀请信息
   if (inviteCode) {
     const {
       inviterUid,
@@ -164,12 +170,14 @@ async function postRegister(params = {}) {
     user.invite_time = inviteTime;
   }
 
+  // 登出现有账号
   if (uniIdToken) {
     try {
       await logout.call(this);
     } catch (error) {}
   }
 
+  // 执行注册前钩子
   const beforeRegister = this.hooks.beforeRegister;
   let userRecord = user;
   if (beforeRegister) {
@@ -179,10 +187,12 @@ async function postRegister(params = {}) {
     });
   }
 
+  // 添加到公共用户表
   const {
     id: uid
   } = await userCollection.add(userRecord);
 
+  // 生成 token
   const createTokenRes = await this.uniIdCommon.createToken({
     uid
   });
@@ -197,39 +207,62 @@ async function postRegister(params = {}) {
     throw createTokenRes;
   }
 
-  // **将注册信息存入自定义的 User 表**
+  // 根据用户类型存储到对应的表
   const db = uniCloud.database();
-  const userTable = db.collection('User'); // 替换为你的表名
-  await userTable.add({
-    userId: uid, // 用户唯一标识
-    nickname: user.nickname || '', // 默认空字符串
-    avatarUrl: user.avatarUrl || '', // 默认空字符串
-    email: user.email || '', // 默认空字符串
-    registerTime: user.register_date, // 使用注册时间
-    password: extraData.password || '', // 加密后的密码
-    lastLoginTime: null, // 初次注册，没有登录时间
-    status: 'active', // 默认状态为 active
-    phone: user.mobile || '', // 手机号
-    token: token // 注册后生成的 token
-  });
-  const selectTable = db.collection('Select');
+  if (isAdmin) {
+    // 存储管理员信息
+    const adminTable = db.collection('Admin');
+    await adminTable.add({
+      adminId: uid,
+      nickname: user.nickname || '',
+      lastLoginTime: Date.now(),
+      registerTime: Date.now(),
+      account: user.username || user.email || '',
+      password: extraData.password || '',
+      status: 'active'
+    });
+  } else {
+    // 存储普通用户信息
+    const userTable = db.collection('User');
+    await userTable.add({
+      userId: uid,
+      nickname: user.nickname || '',
+      avatarUrl: user.avatarUrl || '',
+      email: user.email || '',
+      registerTime: new Date(user.register_date),
+      password: extraData.password || '',
+      lastLoginTime: new Date(),
+      status: 'active',
+      phone: user.mobile || '',
+      token: token,
+      bio: '',
+      memberStatus: 'none',
+      membertype: 'none',
+      remainingDays: 0,
+      remainingTimes: 0,
+      usedTrial: false,
+      memberStartTime: null,
+      memberExpireTime: null
+    });
+
+    // 创建用户的初始选择记录
+    const selectTable = db.collection('Select');
     let nextId = 1;
     const selectMaxId = await selectTable.orderBy('selectId', 'desc').limit(1).get();
     if (selectMaxId.data.length > 0) {
       nextId = selectMaxId.data[0].selectId + 1;
     }
-	const indicators = Array.from({ length: 7 }, (_, index) => ({
-	  metricId: (index + 1).toString(),
-	  metricname: `指标${index + 1}`,
-	  description: `描述${index + 1}`
-	}));
-	await selectTable.add({
-	  selectId: nextId,
-	  fileId: "",
-	  userId: uid,
-	  indicators: indicators, 
-	  timestamp: Date.now()
-  });
+    await selectTable.add({
+      selectId: nextId,
+      fileId: "",
+      userId: uid,
+      packageName: "直播评估",
+      packageId: 1,
+      timestamp: Date.now()
+    });
+  }
+
+  // 记录注册日志
   await this.middleware.uniIdLog({
     data: {
       user_id: uid
@@ -237,27 +270,24 @@ async function postRegister(params = {}) {
     type: LOG_TYPE.REGISTER
   });
 
+  // 返回注册结果
   return {
     errCode: 0,
     uid,
+    userType: isAdmin ? 'admin' : 'user', // 添加用户类型标识
     newToken: {
       token,
       tokenExpired
     },
-    ...(
-      isThirdParty
-        ? thirdPartyRegister({
-          user: {
-            ...userRecord,
-            _id: uid
-          }
-        })
-        : {}
-    ),
+    ...(isThirdParty ? await thirdPartyRegister({
+      user: {
+        ...userRecord,
+        _id: uid
+      }
+    }) : {}),
     passwordConfirmed: !!userRecord.password
   };
 }
-
 
 module.exports = {
   preRegister,

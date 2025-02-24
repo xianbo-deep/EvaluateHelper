@@ -1,0 +1,7 @@
+{
+  "name": "UpdateReport",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

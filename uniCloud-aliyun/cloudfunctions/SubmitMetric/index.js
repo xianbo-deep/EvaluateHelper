@@ -3,10 +3,10 @@ exports.main = async (event, context) => {
   const db = uniCloud.database();
   try {
     // 解构数据
-    const { userId, indicators, timestamp } = event;
+    const { userId, packageName, timestamp ,packageId} = event;
     
     // 参数校验
-    if (!userId || !indicators || !timestamp) {
+    if (!userId || !packageName || !timestamp) {
       return {
         success: false,
         message: '参数不完整',
@@ -22,8 +22,9 @@ exports.main = async (event, context) => {
       // 更新已有记录
       const updateRes = await db.collection('Select').where({
         userId: userId,
+		packageId: packageId
       }).update({
-        indicators: indicators,
+        packageName: packageName,
         timestamp: timestamp,
       });
 
@@ -46,8 +47,9 @@ exports.main = async (event, context) => {
         selectId: nextId,
         fileId: '',
         userId: userId,
-        indicators: indicators,
+        packageName: packageName,
         timestamp: timestamp,
+		packageId: packageId
       };
 
       // 执行新增

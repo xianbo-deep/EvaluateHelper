@@ -1,0 +1,56 @@
+{
+  "bsonType": "object",
+  "required": ["package_id", "package_name", "metrics", "status"],
+  "properties": {
+    "_id": {
+      "description": "ID，系统自动生成"
+    },
+    "package_id": {
+      "bsonType": "string",
+      "description": "套餐ID"
+    },
+    "package_name": {
+      "bsonType": "string",
+      "description": "套餐名称"
+    },
+    "AgentId": {
+      "bsonType": "string",
+      "description": "Agent标识符"
+    },
+    "description": {
+      "bsonType": "string",
+      "description": "套餐描述",
+      "defaultValue": ""
+    },
+    "status": {
+      "bsonType": "string",
+      "enum": ["active", "inactive"],
+      "description": "套餐状态",
+      "defaultValue": "active"
+    },
+    "metrics": {
+      "bsonType": "array",
+      "description": "套餐包含的指标列表",
+      "items": {
+        "bsonType": "object",
+        "required": ["metric_id", "metric_name"],
+        "properties": {
+          "metric_id": {
+            "bsonType": "string",
+            "description": "指标ID"
+          },
+          "metric_name": {
+            "bsonType": "string",
+            "description": "指标名称"
+          }
+        }
+      }
+    }
+  },
+  "permission": {
+    "read": true,
+    "create": false,
+    "update": false,
+    "delete": false
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "bsonType": "object",
+  "properties": {
+    "cardId": {
+      "bsonType": "string",
+      "description": "卡号"
+    },
+    "cardCode": {
+      "bsonType": "string",
+      "description": "卡密码"
+    },
+    "cardType": {
+      "bsonType": "string",
+      "enum": ["daily", "monthly", "times"],
+      "description": "卡密类型：日卡/月卡/次卡"
+    },
+    "value": {
+      "bsonType": "int",
+      "description": "卡密面值（天数/月数/次数）"
+    },
+    "status": {
+      "bsonType": "string",
+      "enum": ["unused", "used", "invalid"],
+      "description": "卡密状态：未使用/已使用/已失效",
+      "default": "unused"
+    },
+    "createTime": {
+      "bsonType": "timestamp",
+      "description": "创建时间"
+    },
+    "useTime": {
+      "bsonType": "timestamp",
+      "description": "使用时间"
+    },
+    "usedBy": {
+      "bsonType": "string",
+      "description": "使用者用户ID"
+    }
+  },
+  "required": [
+    "cardId",
+    "cardCode",
+    "cardType",
+    "value",
+    "status",
+    "createTime"
+  ]
+}

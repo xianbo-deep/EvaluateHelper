@@ -1,5 +1,5 @@
-	{
-    "name" : "EvaluateProject",
+{
+    "name" : "星达学苑",
     "appid" : "__UNI__0CEE0D3",
     "description" : "",
     "versionName" : "1.0.0",
@@ -18,7 +18,9 @@
         },
         /* 模块配置 */
         "modules" : {
-            "OAuth" : {}
+            "OAuth" : {},
+            "Camera" : {},
+            "VideoPlayer" : {}
         },
         /* 应用发布信息 */
         "distribute" : {
@@ -43,11 +45,18 @@
                 ]
             },
             /* ios打包配置 */
-            "ios" : {},
+            "ios" : {
+                "dSYMs" : false
+            },
             /* SDK配置 */
             "sdkConfigs" : {
                 "oauth" : {
                     "univerify" : {}
+                }
+            },
+            "icons" : {
+                "android" : {
+                    "hdpi" : "C:/Evaluate/Data/logo.png"
                 }
             }
         }

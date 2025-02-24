@@ -11,7 +11,7 @@
       <view class="info-item" @click="editUsername">
         <text class="item-label">昵称</text>
         <view class="item-content">
-          <text class="item-value">{{formData.username || '未设置'}}</text>
+          <text class="item-value">{{formData.nickname || '未设置'}}</text>
           <text class="iconfont icon-right"></text>
         </view>
       </view>
@@ -82,7 +82,7 @@ export default {
   data() {
     return {
       formData: {
-        username: '',
+        nickname: '',
         email: '',
         bio: '',
         birthday: ''
@@ -98,7 +98,7 @@ export default {
   computed: {
     popupTitle() {
       const titles = {
-        username: '修改昵称',
+        nickname: '修改昵称',
         email: '修改邮箱',
         bio: '修改简介',
         birthday: '选择生日'
@@ -124,6 +124,7 @@ export default {
 	  const cachedUserInfo = uni.getStorageSync('${userId}_userdata');
 	  const cachedAvatar = uni.getStorageSync('${userId}_avatar');
 	  if (cachedUserInfo) {
+		  console.log(cachedUserInfo)
 	      this.formData = cachedUserInfo; // 如果缓存存在，直接使用
 		  uni.setStorageSync('${userId}_nickname',this.formData.username);
 	    }
@@ -132,8 +133,9 @@ export default {
 	  }
   },
   async onLoad(){
-   const cachedUserInfo = uni.getStorageSync('${userId}_userdata');
-   const cachedAvatar = uni.getStorageSync('${userId}_avatar');
+	  const userId = store.userInfo._id;
+   const cachedUserInfo = uni.getStorageSync(`${userId}_userdata`);
+   const cachedAvatar = uni.getStorageSync(`${userId}_avatar`);
    if (cachedUserInfo || cachedAvatar) {
        this.formData = cachedUserInfo; // 如果缓存存在，直接使用
 	   this.avatar = cachedAvatar;
@@ -148,11 +150,11 @@ export default {
          });
    
          if (res.result && res.result.code == 0) {
-         this.formData.username = res.result.username; // 更新用户数据
-  		 this.formData.email = res.result.email; 
-  		 this.formData.birthday = res.result.birthday; 
-  		 this.formData.bio = res.result.bio; 
-		 this.avatar = res.result.avatarUrl;
+         this.formData.username = res.result.data.username; // 更新用户数据
+  		 this.formData.email = res.result.data.email; 
+  		 this.formData.birthday = res.result.data.birthday; 
+  		 this.formData.bio = res.result.data.bio; 
+		 this.avatar = res.result.data.avatarUrl;
            uni.setStorageSync('${userId}_userdata', this.formData); // 将用户数据存入缓存
 		   uni.setStorageSync('${userId}_nickname', this.formData.username); // 将用户数据存入缓存
 		   uni.setStorageSync('${userId}_avatar', this.avatar); // 将用户数据存入缓存

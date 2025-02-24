@@ -1,0 +1,1 @@
+{"fields":{"walletId":{"type":"string","primary":true},"userId":{"type":"string"},"creattime":{"type":"timestamp"},"currentamount":{"type":"number"}}}

@@ -93,7 +93,7 @@ export default {
           uni.showToast({ title: '获取数据失败', icon: 'none' });
           return;
         }
-    
+        console.log(res.result.data)
         if (res.result.data.length === 0) {
           this.evaluationRecords = [];
           uni.showToast({ title: '暂无测评记录', icon: 'none' });

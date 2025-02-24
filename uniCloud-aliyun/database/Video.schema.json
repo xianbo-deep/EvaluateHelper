@@ -1,0 +1,48 @@
+{
+  "bsonType": "object",
+  "required": [
+    "videoId",
+    "title",
+    "url",
+    "uploadTime",
+    "categoryId"
+  ],
+  "properties": {
+    "videoId": {
+      "bsonType": "objectId",
+      "description": "视频唯一 ID"
+    },
+    "title": {
+      "bsonType": "string",
+      "description": "视频标题"
+    },
+    "description": {
+      "bsonType": "string",
+      "description": "视频描述",
+      "maxLength": 500
+    },
+    "url": {
+      "bsonType": "string",
+      "description": "视频存储地址"
+    },
+    "uploadTime": {
+      "bsonType": "timestamp",
+      "description": "上传时间"
+    },
+	"duration": {
+	  "bsonType": "int",
+	  "description": "视频时长"
+	},
+    "categoryId": {
+      "bsonType": "string",
+      "description": "所属分类 ID，关联 Category 表"
+    }
+    
+  },
+  "permission": {
+    "read": true,
+    "create": true,
+    "update": true,
+    "delete": false
+  }
+}

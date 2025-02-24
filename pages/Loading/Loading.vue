@@ -32,27 +32,200 @@
 </template>
 
 <script>
+import { store } from '/uni_modules/uni-id-pages/common/store.js';	
 export default {
   data() {
     return {
       isLoading: true,
+      isCancelled: false, // 添加标志变量，用于标记页面是否已退出
     };
   },
   onLoad() {
     this.toevaluatereport();
   },
+  onBackPress() {
+    uni.switchTab({
+      url: "/pages/HomePage/HomePage",
+    });
+    return true;
+  },
+  // 添加onUnload生命周期函数，在页面卸载时设置取消标志
+  onUnload() {
+    console.log('页面已卸载，设置取消标志');
+    this.isCancelled = true;
+  },
   methods: {
-    toevaluatereport() {
-      setTimeout(() => {
-        this.isLoading = false;
-        uni.navigateTo({
-          url: '/pages/Report/Report',
+    async toevaluatereport() {
+      try {
+        // 检查点1：如果已取消，则终止执行
+        if (this.isCancelled) {
+          console.log('页面已退出，取消后续操作');
+          return;
+        }
+        
+        const startTime = Date.now();
+        const userId = store.userInfo._id;
+        const recordId = uni.getStorageSync(`${userId}_recordId`);
+        console.log('当前记录ID:', recordId);
+        
+        const result = await uniCloud.callFunction({
+          name: 'UpdateAssessment',
+          data: {
+            userId,
+            recordId,
+            timestamp: Date.now()
+          }
         });
-      }, 2000);
-    },
+        
+        // 检查点2：云函数调用后再次检查是否已取消
+        if (this.isCancelled) {
+          console.log('页面已退出，取消后续操作');
+          return;
+        }
+        
+        if (result.result.success) {
+          const ans = await uniCloud.callFunction({
+            name: 'GetPackageAPI',
+            data:{
+              userId: userId
+            }
+          });
+          
+          // 检查点3：API获取后再次检查是否已取消
+          if (this.isCancelled) {
+            console.log('页面已退出，取消后续操作');
+            return;
+          }
+          
+          if (!ans.result.success) {
+            uni.showToast({
+              title: ans.result.message || '获取API失败',
+              icon: 'none'
+            });
+            return;
+          }
+          
+          const agentConfig = ans.result.data;
+          const res = await uni.request({
+            url: agentConfig.apiPath,
+            method: agentConfig.method,
+            header:{
+              "Authorization": agentConfig.authorization,
+              "Content-Type": "application/json"
+            },
+            data:{
+              "workflow_id":agentConfig.workflowId,
+              "parameters": {
+                "input": result.result.data[0].text
+              }		
+            }
+          });
+          
+          // 检查点4：API请求后再次检查是否已取消
+          if (this.isCancelled) {
+            console.log('页面已退出，取消外部API调用的后续处理');
+            return;
+          }
+          
+          if(res.data.msg === 'Success'){
+            try {
+              // 检查点5：解析前检查
+              if (this.isCancelled) return;
+              
+              console.log('API反回的数据',res.data.data);
+              // 解析第一层JSON
+              const outerData = JSON.parse(res.data.data);
+              
+              // 获取内层数据，直接替换转义字符
+              const innerDataStr = outerData.data.replace(/\\\"/g, '"');
+              console.log('处理后的内层数据:', innerDataStr);
+              
+              const innerData = JSON.parse(innerDataStr);
+              
+              // 获取metrics数组
+              const metricsArray = innerData.metrics;
+              const totalscore = innerData.totalscore.score;
+              if (!metricsArray || !Array.isArray(metricsArray) || metricsArray.length === 0) {
+                throw new Error('未找到有效的metrics数组');
+              }
+              
+              console.log(`成功提取到${metricsArray.length}个评估指标`);
+              
+              // 检查点6：存储前检查
+              if (this.isCancelled) return;
+              
+              // 存储数据到本地
+              uni.setStorageSync(`${userId}_metrics`, metricsArray);
+              uni.setStorageSync(`${userId}_score`, totalscore);
+              const endTime = Date.now();
+              const durationInMilliseconds = endTime - startTime;
+              const duration = Math.round(durationInMilliseconds / (1000 * 60));
+              
+              // 检查点7：更新报告前检查
+              if (this.isCancelled) return;
+              
+              // 调用云函数更新报告
+              const ans = await uniCloud.callFunction({
+                name: 'UpdateReport',
+                data:{
+                  userId,
+                  recordId,
+                  token: res.data.token,
+                  metrics: metricsArray,
+                  rerord: '',
+                  score: totalscore,
+                  duration:duration
+                }
+              });
+              
+              // 检查点8：跳转前最后检查
+              if (this.isCancelled) return;
+              
+              if(ans.result.code === 0){
+                console.log('报告更新成功');
+                uni.navigateTo({
+                  url: '/pages/Report/Report'
+                });
+              } else {
+                throw new Error('更新报告失败: ' + (ans.result.message || '未知错误'));
+              }
+              
+            } catch (parseError) {
+              // 错误处理前也要检查是否已取消
+              if (this.isCancelled) return;
+              
+              console.error('数据解析错误:', parseError);
+              console.error('原始数据:', res.data.data);
+              throw new Error('评分数据解析失败，请重试');
+            }
+          } else {
+            // API调用失败处理前检查
+            if (this.isCancelled) return;
+            
+            throw new Error('API调用失败: ' + res.data.msg);
+          }
+        } else {
+          // 评测更新失败处理前检查
+          if (this.isCancelled) return;
+          
+          throw new Error('评测更新失败');
+        }
+      } catch (error) {
+        // 错误处理前也要检查是否已取消
+        if (this.isCancelled) return;
+        
+        console.error('评测报告处理出错:', error);
+        uni.showToast({
+          title: error.message || '发生错误',
+          icon: 'none',
+          duration: 2000
+        });
+      } 
+    }
   },
 };
 </script>
+
 
 <style>
 .container {

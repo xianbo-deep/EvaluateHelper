@@ -49,12 +49,11 @@ export const mutations = {
 					.get()
 
 				const realNameRes = await uniIdCo.getRealNameInfo()
-
-				// console.log('fromDbData',res.result.data);
-				this.setUserInfo({
-					...res.result.data[0],
-					realNameAuth: realNameRes
-				})
+				
+				    this.setUserInfo({
+				        ...res.result.data[0],
+				        realNameAuth: realNameRes
+				    })
 			} catch (e) {
 				this.setUserInfo({},{cover:true})
 				console.error(e.message, e.errCode);
