@@ -11,46 +11,40 @@
     <view class="content">
       <!-- 顶部说明 -->
       <view class="header-section">
-        <text class="title">我的评测指标</text>
-        <text class="subtitle">{{ hasMetrics ? '您将从以下维度进行评测' : '您还未设置指标' }}</text>
+        <view class="title-container">
+          <text class="title">确认评测套餐</text>
+        </view>
+        <text class="subtitle">{{ hasPackage ? '请确认您选择的套餐信息' : '您还未选择套餐' }}</text>
       </view>
 
-      <!-- 根据是否有指标显示不同内容 -->
-      <block v-if="hasMetrics">
-        <!-- 指标列表 -->
-        <scroll-view class="metrics-list" scroll-y="true">
-          <view 
-            class="metrics-row" 
-            v-for="(row, rowIndex) in groupedMetrics" 
-            :key="rowIndex"
-          >
-            <view 
-              class="metric-item" 
-              v-for="(metric, colIndex) in row" 
-              :key="rowIndex + '-' + colIndex"
-              :style="{ animationDelay: (rowIndex * 2 + colIndex) * 0.1 + 's' }"
-            >
-              <view class="metric-icon" :style="{ background: getGradient(rowIndex * 2 + colIndex) }"></view>
-              <view class="metric-content">
-                <text class="metric-name">{{ metric.name }}</text>
-                <text class="metric-desc">{{ metric.description }}</text>
+      <!-- 根据是否有套餐显示不同内容 -->
+      <block v-if="hasPackage">
+        <!-- 套餐信息 -->
+        <view class="package-info">
+          <view class="package-card" :style="{ animationDelay: '0.2s' }">
+            <view class="package-header">
+              <view class="package-icon" :style="{ background: getGradient(0) }">
+                <text class="icon-text">{{ packageInfo.package_name.substr(0, 1) }}</text>
               </view>
+              <text class="package-name">{{ packageInfo.package_name }}</text>
+            </view>
+            <view class="package-desc">
+              <text class="desc-text">{{ packageInfo.description }}</text>
             </view>
           </view>
-        </scroll-view>
+        </view>
       </block>
       <block v-else>
-        <!-- 无指标时的提示 -->
+        <!-- 无套餐时的提示 -->
         <view class="empty-state">
-          <text class="empty-text">请先设置您的评测指标</text>
+          <text class="empty-text">请先选择评测套餐</text>
         </view>
       </block>
 
       <!-- 底部按钮 -->
       <view class="bottom-section">
         <button class="next-btn" @tap="handleButtonClick">
-          {{ hasMetrics ? '开始评测' : '设置指标' }}
-          <view class="btn-arrow"></view>
+          {{ hasPackage ? '确认' : '选择套餐' }}
         </button>
       </view>
     </view>
@@ -59,46 +53,40 @@
 
 <script>
 import { store } from '/uni_modules/uni-id-pages/common/store.js';
+
 export default {
   data() {
     return {
-      metrics: [],
-      hasMetrics: false
+      packageInfo: {},
+      hasPackage: false
     }
   },
-  computed: {
-    groupedMetrics() {
-      const groups = [];
-      for (let i = 0; i < this.metrics.length; i += 2) {
-        groups.push(this.metrics.slice(i, i + 2));
-      }
-      return groups;
-    }
-  },
-  onShow(){
-	const userId = store.userInfo._id; 
-    const cachedMetrics = uni.getStorageSync(`${userId}_metricData`);
-    if (cachedMetrics && cachedMetrics.length > 0) {
-      this.metrics = cachedMetrics.map(item => ({
-        name: item.name,
-        description: item.description
-      }));
-      this.hasMetrics = true;
+  onShow() {
+    const userId = store.userInfo._id;
+    const cachedPackage = uni.getStorageSync(`${userId}_selectedPackage`);
+    if (cachedPackage) {
+      this.packageInfo = cachedPackage;
+      this.hasPackage = true;
     } else {
-      this.hasMetrics = false;
-      this.metrics = [];
+      this.hasPackage = false;
+      this.packageInfo = {};
     }
   },
-  onBackPress(options){
+  onBackPress({from}) {
     uni.switchTab({
       url: '/pages/HomePage/HomePage'
     });
-	return true;
+    return true;
   },
   methods: {
+    handleModify() {
+      uni.navigateTo({
+        url: '/pages/Metric/Metric'
+      });
+    },
     async handleButtonClick() {
       try {
-        if (this.hasMetrics) {
+        if (this.hasPackage) {
           const res = await uniCloud.callFunction({
             name: 'getMemberInfo',
             data: {
@@ -109,7 +97,6 @@ export default {
           if (res.result.code === 0) {
             const memberInfo = res.result.data;
             
-            // 检查是否是次卡会员
             if (memberInfo.membertype === 'times') {
               if (memberInfo.remainingTimes <= 0) {
                 return uni.showToast({
@@ -118,22 +105,7 @@ export default {
                 });
               }
               
-              // 扣减次数
-              const deductResult = await uniCloud.callFunction({
-                name: 'deductMemberTimes',
-                data: {
-                  userId: store.userInfo._id
-                }
-              });
-              
-              if (deductResult.result.code !== 0) {
-                return uni.showToast({
-                  title: deductResult.result.message || '扣减次数失败',
-                  icon: 'none'
-                });
-              }
             } 
-            // 如果不是次卡会员，检查会员是否有效
             else if (memberInfo.memberStatus !== 'active') {
               return uni.showToast({
                 title: '请先开通会员',
@@ -141,7 +113,6 @@ export default {
               });
             }
     
-            // 导航到加载页面
             uni.navigateTo({
               url: '/pages/Loading/Loading'
             });
@@ -152,15 +123,12 @@ export default {
             });
           }
         } else {
-          // 如果没有指标数据，跳转到指标页面
+		  uni.showToast({
+		  	title:'请先选择套餐',
+			duration:2000
+		  })
           uni.navigateTo({
-            url: '/pages/Metric/Metric',
-            fail: (err) => {
-              uni.showToast({
-                title: '跳转失败，请重试',
-                icon: 'none'
-              });
-            }
+            url: '/pages/Metric/Metric'
           });
         }
       } catch (error) {
@@ -175,10 +143,7 @@ export default {
       const gradients = [
         'linear-gradient(135deg, #8B5CF6, #6366F1)',
         'linear-gradient(135deg, #6366F1, #4F46E5)',
-        'linear-gradient(135deg, #7C3AED, #6D28D9)',
-        'linear-gradient(135deg, #818CF8, #6366F1)',
-        'linear-gradient(135deg, #A78BFA, #8B5CF6)',
-        'linear-gradient(135deg, #9333EA, #7C3AED)'
+        'linear-gradient(135deg, #7C3AED, #6D28D9)'
       ];
       return gradients[index % gradients.length];
     }
@@ -189,150 +154,136 @@ export default {
 <style>
 .metrics-container {
   min-height: 100vh;
-  background: #F8FAFC;
   position: relative;
   overflow: hidden;
 }
 
-/* 背景效果 */
 .background {
   position: fixed;
-  width: 100%;
-  height: 100%;
   top: 0;
   left: 0;
-  z-index: 1;
+  right: 0;
+  bottom: 0;
+  background: #F3F4F6;
+  overflow: hidden;
 }
 
 .gradient-orb {
   position: absolute;
+  width: 600rpx;
+  height: 600rpx;
   border-radius: 50%;
-  filter: blur(60rpx);
+  filter: blur(100rpx);
+  opacity: 0.15;
 }
 
 .gradient-orb:nth-child(1) {
-  width: 600rpx;
-  height: 600rpx;
-  background: linear-gradient(135deg, rgba(91, 33, 182, 0.1), rgba(67, 56, 202, 0.05));
+  background: #8B5CF6;
   top: -200rpx;
-  right: -100rpx;
-  animation: float1 20s ease-in-out infinite alternate;
+  left: -200rpx;
 }
 
 .gradient-orb:nth-child(2) {
-  width: 500rpx;
-  height: 500rpx;
-  background: linear-gradient(225deg, rgba(99, 102, 241, 0.08), rgba(79, 70, 229, 0.05));
-  bottom: -150rpx;
-  left: -100rpx;
-  animation: float2 15s ease-in-out infinite alternate-reverse;
+  background: #6366F1;
+  top: 60%;
+  right: -300rpx;
 }
 
 .gradient-orb:nth-child(3) {
-  width: 400rpx;
-  height: 400rpx;
-  background: linear-gradient(45deg, rgba(139, 92, 246, 0.06), rgba(99, 102, 241, 0.03));
-  top: 40%;
-  left: 60%;
-  animation: float3 18s ease-in-out infinite alternate;
+  background: #7C3AED;
+  bottom: -200rpx;
+  left: 30%;
 }
 
-/* 主要内容 */
 .content {
   position: relative;
-  z-index: 2;
   min-height: 100vh;
+  padding: 40rpx;
   display: flex;
   flex-direction: column;
-  padding: 40rpx;
+  box-sizing: border-box;
+  padding-bottom: 120rpx;
 }
 
 .header-section {
-  margin: 40rpx 0 60rpx;
-  text-align: center;
-  animation: fadeInUp 0.8s ease-out;
+  margin-bottom: 40rpx;
+}
+
+.title-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 16rpx;
 }
 
 .title {
   font-size: 48rpx;
   font-weight: 600;
-  color: #1E293B;
-  display: block;
-  margin-bottom: 16rpx;
-  letter-spacing: 2rpx;
+  color: #1F2937;
+  text-align: center;
 }
 
 .subtitle {
   font-size: 28rpx;
-  color: rgba(30, 41, 59, 0.7);
+  color: #6B7280;
   display: block;
+  text-align: center;
+  margin-bottom: 40rpx;
 }
 
-.metrics-list {
+.package-info {
   flex: 1;
-  padding: 20rpx 10rpx;
+  padding: 20rpx 0;
 }
 
-.metrics-row {
-  display: flex;
-  margin-bottom: 30rpx;
-  gap: 30rpx;
-  padding: 0 10rpx;
-}
-
-.metric-item {
-  flex: 1;
-  padding: 40rpx;
+.package-card {
   background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10rpx);
-  border-radius: 30rpx;
-  border: 1rpx solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: slideUp 0.5s ease forwards;
-  opacity: 0;
-  transform: translateY(20rpx);
+  backdrop-filter: blur(20px);
+  border-radius: 24rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  animation: slideUp 0.5s ease-out forwards;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+}
+
+.package-header {
   display: flex;
-  flex-direction: row;
   align-items: center;
-  gap: 24rpx;
+  margin-bottom: 24rpx;
 }
 
-.metric-item:active {
-  transform: scale(0.98) translateY(2rpx);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 0 20rpx rgba(139, 92, 246, 0.15);
+.package-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
 }
 
-.metric-icon {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 16rpx;
-  flex-shrink: 0;
-}
-
-.metric-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.metric-name {
-  font-size: 32rpx;
+.icon-text {
+  color: #FFFFFF;
+  font-size: 36rpx;
   font-weight: 600;
-  color: #1E293B;
-  margin-bottom: 8rpx;
-  display: block;
 }
 
-.metric-desc {
-  font-size: 26rpx;
-  color: rgba(30, 41, 59, 0.7);
-  line-height: 1.5;
-  display: block;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
+.package-name {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #1F2937;
+}
+
+.package-desc {
+  padding: 24rpx;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 16rpx;
+}
+
+.desc-text {
+  font-size: 28rpx;
+  color: #4B5563;
+  line-height: 1.6;
 }
 
 .empty-state {
@@ -340,88 +291,64 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40rpx;
-  animation: fadeInUp 0.8s ease-out;
 }
 
 .empty-text {
   font-size: 32rpx;
-  color: rgba(30, 41, 59, 0.7);
-  text-align: center;
+  color: #6B7280;
 }
 
 .bottom-section {
-  padding: 40rpx 0;
-  animation: fadeInUp 0.8s ease-out 0.4s backwards;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 40rpx;
+  padding: 0 32rpx;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-.next-btn {
-  width: 100%;
-  height: 96rpx;
-  line-height: 96rpx;
-  text-align: center;
-  background: linear-gradient(135deg, #8B5CF6, #6366F1);
-  color: #FFFFFF;
+.modify-btn {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366F1;
+  height: 88rpx;
+  border-radius: 44rpx;
   font-size: 32rpx;
   font-weight: 600;
-  border-radius: 48rpx;
-  letter-spacing: 2rpx;
-  box-shadow: 0 4rpx 12rpx rgba(139, 92, 246, 0.2);
-  transition: all 0.3s ease;
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
 }
 
-.next-btn:active {
-  transform: scale(0.98) translateY(2rpx);
-  box-shadow: 0 2rpx 8rpx rgba(139, 92, 246, 0.15);
-  background: linear-gradient(135deg, #7C3AED, #4F46E5);
+.next-btn {
+  background: linear-gradient(135deg, #8B5CF6, #6366F1);
+  color: #FFFFFF;
+  height: 100rpx;
+  border-radius: 50rpx;
+  font-size: 36rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  width: 90%;
+  margin: 0 auto;
+  box-shadow: 0 4rpx 20rpx rgba(139, 92, 246, 0.3);
 }
 
 .btn-arrow {
-  width: 20rpx;
-  height: 20rpx;
+  width: 16rpx;
+  height: 16rpx;
   border-right: 3rpx solid #FFFFFF;
   border-top: 3rpx solid #FFFFFF;
   transform: rotate(45deg);
   margin-left: 12rpx;
-  position: relative;
-  top: -2rpx;
-}
-
-/* 动画效果 */
-@keyframes float1 {
-  0% { transform: translate(0, 0) rotate(0deg); }
-  100% { transform: translate(30rpx, -30rpx) rotate(5deg); }
-}
-
-@keyframes float2 {
-  0% { transform: translate(0, 0) rotate(0deg); }
-  100% { transform: translate(-20rpx, 20rpx) rotate(-5deg); }
-}
-
-@keyframes float3 {
-  0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(20rpx, -20rpx) scale(1.1); }
 }
 
 @keyframes slideUp {
-  0% {
-    opacity: 0;
-    transform: translateY(20rpx);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20rpx);
+    transform: translateY(40rpx);
   }
   to {
     opacity: 1;

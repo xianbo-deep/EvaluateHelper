@@ -131,10 +131,10 @@ export default {
               uni.showToast({ title: '请先上传视频', icon: 'none' });
               return;
             }
-			const cachedmetricdata = uni.getStorageSync(`${userId}_metricData`);
-			if(!cachedmetricdata){
+			const cachedselectedPackage = uni.getStorageSync(`${userId}_selectedPackage`);
+			if(!cachedselectedPackage){
 				uni.showToast({
-					title:'请先设置指标',
+					title:'请先选择套餐',
 					icon:'none',
 					duration: 2000
 				});

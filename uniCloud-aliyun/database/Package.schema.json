@@ -1,39 +1,56 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Package",
-  "description": "套餐表结构定义",
-  "type": "object",
+  "bsonType": "object",
+  "required": ["package_id", "package_name", "metrics", "status"],
   "properties": {
-    "id": {
-      "type": "integer",
+    "_id": {
+      "description": "ID，系统自动生成"
+    },
+    "package_id": {
+      "bsonType": "string",
       "description": "套餐ID"
     },
     "package_name": {
-      "type": "string",
+      "bsonType": "string",
       "description": "套餐名称"
     },
+    "AgentId": {
+      "bsonType": "string",
+      "description": "Agent标识符"
+    },
     "description": {
-      "type": "string",
-      "description": "套餐描述"
+      "bsonType": "string",
+      "description": "套餐描述",
+      "defaultValue": ""
+    },
+    "status": {
+      "bsonType": "string",
+      "enum": ["active", "inactive"],
+      "description": "套餐状态",
+      "defaultValue": "active"
     },
     "metrics": {
-      "type": "array",
+      "bsonType": "array",
       "description": "套餐包含的指标列表",
       "items": {
-        "type": "object",
+        "bsonType": "object",
+        "required": ["metric_id", "metric_name"],
         "properties": {
           "metric_id": {
-            "type": "string",
+            "bsonType": "string",
             "description": "指标ID"
           },
           "metric_name": {
-            "type": "string",
+            "bsonType": "string",
             "description": "指标名称"
           }
-        },
-        "required": ["metric_id", "metric_name"]
+        }
       }
     }
   },
-  "required": ["id", "package_name", "metrics"]
+  "permission": {
+    "read": true,
+    "create": false,
+    "update": false,
+    "delete": false
+  }
 }

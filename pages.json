@@ -233,6 +233,27 @@
 	{
 		"navigationBarTitleText" : "测评报告"
 	}
+},
+{
+	"path" : "pages/video/video",
+	"style" : 
+	{
+		"navigationBarTitleText" : "视频详情"
+	}
+},
+{
+	"path" : "pages/Square/Square",
+	"style" : 
+	{
+		"navigationBarTitleText" : "广场"
+	}
+},
+{
+	"path" : "pages/Host/Host",
+	"style" : 
+	{
+		"navigationBarTitleText" : "主播详情"
+	}
 }
 ],
 	"tabBar": {
@@ -248,6 +269,12 @@
 				"text": "教程",
 				"iconPath": "/static/assessment-alt.png",
 				"selectedIconPath": "/static/assessment-active.png"
+			},
+			{
+				"pagePath": "pages/Square/Square",
+				"text": "广场",
+				"iconPath": "/static/square.png",
+				"selectedIconPath": "/static/square-active.png"
 			},
 			{
 				"pagePath": "pages/EvaluationHistoryPage/EvaluationHistoryPage",

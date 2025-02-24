@@ -87,7 +87,19 @@ export default {
     },
     async onLoad() {
         const userId = store.userInfo._id;
+        const deductResult = await uniCloud.callFunction({
+          name: 'deductMemberTimes',
+          data: {
+            userId: store.userInfo._id
+          }
+        });
         
+        if (deductResult.result.code !== 0) {
+          return uni.showToast({
+            title: deductResult.result.message || '扣减次数失败',
+            icon: 'none'
+          });
+        }
         // 获取存储的评测数据
         const metricsData = uni.getStorageSync(`${userId}_metrics`);
 		const recordId = uni.getStorageSync(`${userId}_recordId`);
@@ -96,19 +108,6 @@ export default {
         if (metricsData && metricsData.length > 0) {
             // 设置总分（计算所有指标的平均分）
             this.totalscore = uni.getStorageSync(`${userId}_score`);
-            const res =await uniCloud.callFunction({
-            	name: 'UpdateScore',
-				data:{
-					userId: userId,
-					recordId: recordId,
-					score: this.totalscore
-				}
-            });
-			if(res.result.code != 0){
-				uni.showToast({
-					title:'分数同步出现问题'
-				})
-			}
             // 格式化指标数据用于显示
             this.metrics = metricsData.map(m => ({
                 name: m.metricname,
@@ -157,6 +156,12 @@ export default {
             });
         }
     },
+	onBackPress() {
+	    uni.switchTab({
+	        url: "/pages/EvaluationHistoryPage/EvaluationHistoryPage",
+	    });
+	    return true;
+	},
     methods: {
         getScoreColor(score) {
             if (score >= 90) return '#6366F1';
@@ -170,13 +175,6 @@ export default {
             const month = (date.getMonth() + 1).toString().padStart(2, '0');
             const day = date.getDate().toString().padStart(2, '0');
             return `${year}-${month}-${day}`;
-        },
-        
-        onBackPress({from}) {
-            uni.switchTab({
-                url: "/pages/EvaluationHistoryPage/EvaluationHistoryPage",
-            });
-            return true;
         }
     }
 }

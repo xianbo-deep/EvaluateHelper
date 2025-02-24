@@ -41,23 +41,24 @@
             </view>
             <text class="menu-arrow">></text>
           </view>
-
+		  <view class="menu-item" @tap="handleHelp">
+		    <text class="menu-text">兑换记录</text>
+		    <text class="menu-arrow">></text>
+		  </view>
+		  <view class="menu-item" @tap="handleMetrics">
+		    <text class="menu-text">套餐设置</text>
+		    <text class="menu-arrow">></text>
+		  </view>
           <view class="menu-item" @tap="handleEdit">
             <text class="menu-text">个人信息</text>
             <text class="menu-arrow">></text>
           </view>
-          <view class="menu-item" @tap="handleMetrics">
-            <text class="menu-text">套餐设置</text>
-            <text class="menu-arrow">></text>
-          </view>
+          
           <view class="menu-item" @tap="handleFeedback">
             <text class="menu-text">意见反馈</text>
             <text class="menu-arrow">></text>
           </view>
-          <view class="menu-item" @tap="handleHelp">
-            <text class="menu-text">兑换记录</text>
-            <text class="menu-arrow">></text>
-          </view>
+          
         </view>
 
         <view v-if="store.hasLogin" class="logout-section">
@@ -124,52 +125,85 @@ export default {
   methods: {
     // 加载用户数据
     async loadUserData() {
-	  this.isLoading = true;
+      this.isLoading = true;
       const userId = store.userInfo._id;
+      
       try {
-	   
-       const [userRes, memberRes] = await Promise.all([
-                 uniCloud.callFunction({
-                   name: 'Getuser',
-                   data: { uid: userId }
-                 }),
-                 uniCloud.callFunction({
-                   name: 'getMemberInfo',
-                   data: { userId: userId }
-                 })
-               ]);
-		
-        if (userRes.result?.code === 0 && memberRes.result?.code === 0) {
-          const userData = userRes.result.data;
-		  console.log(userData);
-		  const memberData = memberRes.result.data;
-		  console.log(memberData)
+        const db = uniCloud.database();
+        
+        // 查询用户信息
+        const result = await db.collection('User')
+          .where({userId})
+          .field({
+            'nickname': true,
+            'avatarUrl': true,
+            'email': true,
+            'bio': true,
+            'phone': true,
+            'status': true,
+            'memberStatus': true,
+            'membertype': true,
+            'remainingTimes': true,
+            'remainingDays': true,
+            'usedTrial': true,
+            'memberExpireTime': true
+          })
+          .get();
+        const userData = result.result.data[0];
+        if (userData) {
+          // 更新组件数据
           this.nickname = userData.nickname;
           this.avatar = userData.avatarUrl;
           this.memberInfo = {
-            memberStatus: memberData.memberStatus || 'none',
-            membertype: memberData.membertype || 'none',
-            userTrail: memberData.userTrail || false,
-			remainingTimes: memberData.remainingTimes || 0
+            memberStatus: userData.memberStatus || 'none',
+            membertype: userData.membertype || 'none',
+            remainingTimes: userData.remainingTimes || 0,
+            remainingDays: userData.remainingDays || 0,
+            usedTrial: userData.usedTrial || false
           };
-		  const userdata = {
-			  nickname: userData.nickname,
-			  email: userData.email,
-			  bio: userData.bio
-		  }
+    
+          const userdata = {
+            nickname: userData.nickname,
+            email: userData.email,
+            bio: userData.bio || '',
+            phone: userData.phone,
+            status: userData.status
+          };
+    
           // 更新本地缓存
-		  uni.setStorageSync(`${userId}_memberInfo`, memberData);
+          uni.setStorageSync(`${userId}_memberInfo`, this.memberInfo);
           uni.setStorageSync(`${userId}_nickname`, this.nickname);
           uni.setStorageSync(`${userId}_avatar`, this.avatar);
-		  uni.setStorageSync(`${userId}_userdata`, userdata);
+          uni.setStorageSync(`${userId}_userdata`, userdata);
+    
+          // 检查会员状态是否过期
+          if (userData.memberStatus === 'active' && userData.memberExpireTime) {
+            const now = new Date();
+            const expireTime = new Date(userData.memberExpireTime);
+            if (now > expireTime) {
+              // 会员已过期，更新状态
+              await db.collection('users')
+                .doc(userId)
+                .update({
+                  memberStatus: 'expired'
+                });
+              this.memberInfo.memberStatus = 'expired';
+              uni.setStorageSync(`${userId}_memberInfo`, this.memberInfo);
+            }
+          }
+        } else {
+          throw new Error('未找到用户数据');
         }
       } catch (err) {
         console.error('加载用户数据失败:', err);
+        uni.showToast({
+          title: '加载用户数据失败',
+          icon: 'none'
+        });
       } finally {
         this.isLoading = false;
       }
     },
-
     // 获取会员状态文本
     getMemberStatusText() {
       const { memberStatus, membertype, remainingDays, remainingTimes } = this.memberInfo;
@@ -203,7 +237,7 @@ export default {
 
     handleLogin() {
       uni.navigateTo({
-        url: '/uni_modules/uni-id-pages/pages/login/login-withpwd',
+        url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd?type=univerify',
       });
     },
 
@@ -234,7 +268,7 @@ export default {
         url: '/pages/RedemptionHistory/RedemptionHistory',
       });
     },
-
+	
     viewavatar() {
       if (!this.avatar) {
         uni.showToast({

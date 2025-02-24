@@ -1,0 +1,28 @@
+{
+  "bsonType": "object",
+  "required": ["categoryId", "name"],
+  "properties": {
+    "categoryId": {
+      "bsonType": "objectId",
+      "description": "类别唯一 ID"
+    },
+    "name": {
+      "bsonType": "string",
+      "description": "分类名称（如：前端、后端、数据库）"
+    },
+    "description": {
+      "bsonType": "string",
+      "description": "分类描述（可选）"
+    },
+    "createdAt": {
+      "bsonType": "timestamp",
+      "description": "分类创建时间"
+    }
+  },
+  "permission": {
+    "read": true,
+    "create": false,
+    "update": false,
+    "delete": false
+  }
+}

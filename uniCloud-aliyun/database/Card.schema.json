@@ -25,11 +25,11 @@
       "default": "unused"
     },
     "createTime": {
-      "bsonType": "date",
+      "bsonType": "timestamp",
       "description": "创建时间"
     },
     "useTime": {
-      "bsonType": "date",
+      "bsonType": "timestamp",
       "description": "使用时间"
     },
     "usedBy": {

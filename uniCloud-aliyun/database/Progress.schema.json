@@ -1,0 +1,104 @@
+{
+  "bsonType": "object",
+  "required": [
+    "videoId",
+    "userId",
+    "watchedDuration",
+    "completed"
+  ],
+  "properties": {
+    "_id": {
+      "description": "ID，系统自动生成"
+    },
+    "videoId": {
+      "bsonType": "string",
+      "description": "视频 ID，关联 Video 表"
+    },
+    "userId": {
+      "bsonType": "string",
+      "description": "用户 ID"
+    },
+    "watchedDuration": {
+      "bsonType": "int",
+      "description": "已观看时长（秒）"
+    },
+    "completed": {
+      "bsonType": "bool",
+      "description": "是否看完",
+      "defaultValue": false
+    },
+    "title": {
+      "bsonType": "string",
+      "description": "视频标题（冗余信息，便于查询）"
+    },
+    "progress": {
+      "bsonType": "double",
+      "description": "观看进度百分比",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "lastPosition": {
+      "bsonType": "int",
+      "description": "最后观看位置（秒）",
+      "minimum": 0
+    },
+    "viewCount": {
+      "bsonType": "int",
+      "description": "观看次数",
+      "minimum": 1,
+      "defaultValue": 1
+    },
+    "categoryId": {
+      "bsonType": "string",
+      "description": "视频分类ID（冗余字段，便于按分类查询）"
+    },
+    "videoDuration": {
+      "bsonType": "int",
+      "description": "视频总时长（秒，冗余字段）"
+    },
+    "createTime": {
+      "bsonType": "timestamp",
+      "description": "记录创建时间"
+    },
+    "updateTime": {
+      "bsonType": "timestamp",
+      "description": "记录更新时间"
+    }
+  },
+  "indexes": [
+    {
+      "key": {
+        "userId": 1,
+        "videoId": 1
+      },
+      "name": "user_video_idx",
+      "unique": true
+    },
+    {
+      "key": {
+        "videoId": 1
+      },
+      "name": "video_idx"
+    },
+    {
+      "key": {
+        "userId": 1,
+        "updateTime": -1
+      },
+      "name": "user_recent_idx"
+    },
+    {
+      "key": {
+        "userId": 1,
+        "completed": 1
+      },
+      "name": "user_completed_idx"
+    }
+  ],
+  "permission": {
+    "read": true,
+    "create": true,
+    "update": true,
+    "delete": false
+  }
+}

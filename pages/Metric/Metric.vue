@@ -1,46 +1,48 @@
 <template>
   <view class="container">
     <view class="header">
-      <view class="stats-box">
-        <view class="left-box">
-          <text class="limit-tip">请选择指标</text>
-          <text class="limit-count">({{minSelect}}-{{maxSelect}}个)</text>
-        </view>
-        <view class="right-box">
-          <text class="stats-count">已选：</text>
-          <text class="count-num">{{ selectedIndicators.length }}</text>
-          <text class="stats-count">/{{maxSelect}}</text>
-        </view>
+      <view class="header-content">
+        <text class="header-title">选择评估套餐</text>
+        <text class="header-desc">选择最适合您的评估方案，开启学习之旅</text>
       </view>
     </view>
     
     <view class="content">
-      <view class="indicator-list">
+      <view class="package-list">
         <view 
-          v-for="indicator in indicators" 
-          :key="indicator.id"
-          class="indicator-item"
+          v-for="(pkg, index) in packages" 
+          :key="index"
+          class="package-item"
           :class="{
-            'indicator-selected': isSelected(indicator),
-            'indicator-disabled': !isSelected(indicator) && !canSelect
+            'package-selected': selectedPackage?.package_name === pkg.package_name,
+            'package-empty': pkg.status === 'inactive'
           }"
-          @tap="toggleIndicator(indicator)"
+          @tap="selectPackage(pkg)"
         >
-          <view class="indicator-content">
-            <text class="indicator-name">{{indicator.name}}</text>
-            <text class="indicator-desc">{{indicator.description}}</text>
+          <view class="package-badge" v-if="index === 0">推荐</view>
+          <view class="package-content">
+            <view class="package-header">
+              <text class="package-name">{{pkg.package_name}}</text>
+              <text class="package-tag" v-if="index === 0">AI 驱动</text>
+            </view>
+            <text class="package-description">{{pkg.description || '暂无描述'}}</text>
+          </view>
+          <view class="select-indicator">
+            <view class="select-circle"></view>
           </view>
         </view>
       </view>
     </view>
 
-    <view class="footer">
+    <view class="footer safe-area-bottom">
       <button 
-        class="confirm-btn" 
-        :disabled="(selectedIndicators.length < minSelect) || (selectedIndicators.length > maxSelect)"
-        @tap="submitMetric"
+        class="confirm-btn"
+        :class="{'confirm-btn-active': selectedPackage}"
+        :disabled="!selectedPackage"
+        @tap="submitSelection"
       >
-        确认修改
+        <text v-if="!selectedPackage">请选择套餐</text>
+        <text v-else>确认选择 {{selectedPackage.package_name}}</text>
       </button>
     </view>
   </view>
@@ -52,127 +54,127 @@ import { store } from '/uni_modules/uni-id-pages/common/store.js';
 export default {
   data() {
     return {
-      selectedIndicators: [],
-      indicators: [],
-      minSelect: 7,
-      maxSelect: 9
+      selectedPackage: null,
+      packages: []
     }
   },
-  computed: {
-    canSelect() {
-      return this.selectedIndicators.length < this.maxSelect
-    }
-  },
-  async onLoad() {
-    try {
-      uni.showLoading({
-        title: '加载中'
-      })
-      const { result } = await uniCloud.callFunction({
-        name: 'GetMetrics'
-      });
-      
-      if (result.success) {
-        this.indicators = result.data;
-        uni.hideLoading();
-        
-        const userId = store.userInfo._id;
-        const cachedMetrics = uni.getStorageSync(`${userId}_metricData`);
-        
-        if (cachedMetrics && cachedMetrics.length > 0) {
-          this.selectedIndicators = this.indicators.filter(indicator => 
-            cachedMetrics.some(cached => cached.id === indicator.id)
-          );
-        } else {
-          this.selectedIndicators = this.indicators.slice(0, 7);
-          uni.setStorageSync(`${userId}_metricData`, this.selectedIndicators);
-        }
-      } else {
-        uni.showToast({
-          title: '获取指标失败',
-          icon: 'none'
-        });
-      }
-    } catch (error) {
-      console.error('获取指标失败:', error);
-      uni.showToast({
-        title: '系统错误，请重试',
-        icon: 'none'
-      });
-    }
+  onLoad() {
+    this.getPackages()
   },
   methods: {
-    isSelected(indicator) {
-      return this.selectedIndicators.some(selected => selected.id === indicator.id);
-    },
-    toggleIndicator(indicator) {
-      const index = this.selectedIndicators.findIndex(selected => selected.id === indicator.id);
-      if (index > -1) {
-        this.selectedIndicators.splice(index, 1);
-      } else if (this.canSelect) {
-        this.selectedIndicators.push({...indicator});
+    selectPackage(pkg) {
+      if (pkg.status == 'inactive') return; 
+      
+      // 如果已经选中，则取消选择
+      if (this.selectedPackage?.package_name === pkg.package_name) {
+        this.selectedPackage = null;
+      } else {
+        this.selectedPackage = pkg;
       }
     },
-    submitMetric() {
-      uni.showLoading({
-        title: '提交中',
-      });
-    
-      const userId = store.userInfo._id;
-      const count = this.selectedIndicators.length;
-    
-      if (count < this.minSelect || count > this.maxSelect) {
+    async getPackages() {
+      try {
+          uni.showLoading({
+           title: '加载中'
+         });
+		const db = uniCloud.database();
+         // 直接查询数据库获取套餐数据 
+         const { result } = await db.collection('Package')
+           .field('package_id,package_name,description,status')
+           
+           .get();
+      
+         if (result.data) {
+           this.packages = result.data;
+          
+          // 获取缓存的选择
+          const userId = store.userInfo._id; 
+          const cachedSelection = uni.getStorageSync(`${userId}_selectedPackage`);
+          
+          if (cachedSelection) {
+            // 找到对应的套餐并设置为选中
+            const selectedPkg = this.packages.find(pkg => 
+              pkg.package_id === cachedSelection.package_id && 
+              pkg.package_name === cachedSelection.package_name
+            );
+            if (selectedPkg) {
+              this.selectedPackage = selectedPkg;
+            }
+          }
+        } else {
+          uni.showToast({
+            title: '获取套餐失败',
+            icon: 'none'
+          });
+        }
+      } catch (error) {
+        console.error('获取套餐失败:', error);
         uni.showToast({
-          title: `请选择${this.minSelect}-${this.maxSelect}个指标`,
-          icon: 'none',
+          title: '系统错误，请重试',
+          icon: 'none'
         });
+      } finally {
         uni.hideLoading();
+      }
+    },
+    async submitSelection() {
+      if (!this.selectedPackage) {
+        uni.showToast({
+          title: '请选择一个套餐',
+          icon: 'none'
+        });
         return;
       }
-    
-      const selectedData = this.selectedIndicators.map(indicator => ({
-        id: indicator.id,
-        name: indicator.name,
-        description: indicator.description,
-      }));
-    
-      const data = {
-        userId: userId,
-        indicators: selectedData,
-        timestamp: Date.now(),
-      };
-    
-      uniCloud.callFunction({
-        name: 'SubmitMetric',
-        data: data,
-      })
-        .then(res => {
-          if (res.result.success) {
-            uni.setStorageSync(`${userId}_metricData`, selectedData);
-            uni.showToast({
-              title: res.result.message,
-              icon: 'success',
-            });
-            uni.switchTab({
-              url: '/pages/MyPage/MyPage',
-            });
-          } else {
-            uni.showToast({
-              title: res.result.message || '提交失败',
-              icon: 'none',
-            });
-          }
-        })
-        .catch(err => {
-          console.error('提交失败：', err);
-          uni.showToast({
-            title: '系统错误，请稍后重试',
-            icon: 'none',
-          });
-        })
-        .finally(() => {
-          uni.hideLoading();
+
+      uni.showLoading({
+        title: '提交中'
+      });
+
+      try {
+        const userId = store.userInfo._id;
+        const data = {
+          userId,
+          packageName: this.selectedPackage.package_name,
+          packageId: this.selectedPackage.package_id,
+          timestamp: Date.now()
+        };
+
+        const res = await uniCloud.callFunction({
+          name: 'SubmitMetric',
+          data
         });
+
+        if (res.result.success) {
+          // 只在提交成功后保存选择到缓存
+          const cacheData = {
+            package_name: this.selectedPackage.package_name,
+            package_id: this.selectedPackage.package_id,
+			description: this.selectedPackage.description
+          };
+          uni.setStorageSync(`${userId}_selectedPackage`, cacheData);
+          
+          uni.showToast({
+            title: '选择成功',
+            icon: 'success'
+          });
+          uni.switchTab({
+            url: '/pages/MyPage/MyPage'
+          });
+        } else {
+          uni.showToast({
+            title: res.result.message || '提交失败',
+            icon: 'none'
+          });
+        }
+      } catch (error) {
+        console.error('提交失败:', error);
+        uni.showToast({
+          title: '系统错误，请稍后重试',
+          icon: 'none'
+        });
+      } finally {
+        uni.hideLoading();
+      }
     }
   }
 }
@@ -181,144 +183,150 @@ export default {
 <style>
 .container {
   min-height: 100vh;
-  height: 100vh;
-  background-color: #f8fafc;
+  background-color: #f4f6fa;
   box-sizing: border-box;
-  overflow-y: auto;
-  padding-bottom: 120rpx;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 999;
-  background: #ffffff;
-  padding: 24rpx 32rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, #4171f5, #3451b2);
+  padding: 48rpx 32rpx;
+  padding-bottom: 80rpx;
 }
 
-.stats-box {
+.header-content {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 88rpx;
-}
-
-.left-box {
-  display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12rpx;
 }
 
-.limit-tip {
-  font-size: 34rpx;
-  color: #1f2937;
+.header-title {
+  font-size: 48rpx;
+  color: #ffffff;
   font-weight: 600;
 }
 
-.limit-count {
+.header-desc {
   font-size: 28rpx;
-  color: #6b7280;
-}
-
-.right-box {
-  display: flex;
-  align-items: center;
-}
-
-.stats-count {
-  font-size: 30rpx;
-  color: #6b7280;
-}
-
-.count-num {
-  font-size: 36rpx;
-  color: #3b82f6;
-  font-weight: 600;
-  margin: 0 4rpx;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .content {
-  padding: 144rpx 32rpx 32rpx;
-  min-height: 100vh;
-  box-sizing: border-box;
+  margin-top: -40rpx;
+  padding: 0 32rpx;
+  padding-bottom: 180rpx;
 }
 
-.indicator-list {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24rpx;
-  background: #ffffff;
-  padding: 24rpx;
-  border-radius: 16rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.03);
-}
-
-.indicator-item {
-  min-height: 160rpx;
-  border-radius: 12rpx;
-  background: #f9fafb;
-  transition: all 0.2s ease;
-  position: relative;
-  overflow: hidden;
-  padding: 24rpx;
-  border: 2rpx solid transparent;
-  box-sizing: border-box;
-}
-
-.indicator-content {
-  height: 100%;
+.package-list {
   display: flex;
   flex-direction: column;
-  gap: 8rpx;
+  gap: 24rpx;
 }
 
-.indicator-name {
-  font-size: 32rpx;
-  color: #1f2937;
+.package-item {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+  border: 2rpx solid transparent;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.package-badge {
+  position: absolute;
+  top: 24rpx;
+  right: -60rpx;
+  background: #ff6b6b;
+  color: #ffffff;
+  padding: 8rpx 80rpx;
+  transform: rotate(45deg);
+  font-size: 24rpx;
   font-weight: 500;
 }
 
-.indicator-desc {
-  font-size: 24rpx;
-  color: #6b7280;
-  line-height: 1.5;
+.package-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
 }
 
-.indicator-item::after {
+.package-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.package-name {
+  font-size: 36rpx;
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.package-tag {
+  background: rgba(65, 113, 245, 0.1);
+  color: #4171f5;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.package-description {
+  font-size: 28rpx;
+  color: #666666;
+  line-height: 1.6;
+}
+
+.select-indicator {
+  position: absolute;
+  right: 32rpx;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.select-circle {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 3rpx solid #ddd;
+  transition: all 0.3s ease;
+}
+
+.package-selected {
+  border-color: #4171f5;
+  background: #f8faff;
+  transform: translateY(-2rpx);
+  box-shadow: 0 8rpx 24rpx rgba(65, 113, 245, 0.1);
+}
+
+.package-selected .package-name {
+  color: #4171f5;
+}
+
+.package-selected .select-circle {
+  border-color: #4171f5;
+  background: #4171f5;
+  position: relative;
+}
+
+.package-selected .select-circle::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #000;
-  opacity: 0;
-  transition: opacity 0.2s;
+  width: 20rpx;
+  height: 12rpx;
+  border: 3rpx solid #fff;
+  border-top: none;
+  border-right: none;
+  transform: rotate(-45deg);
+  top: 10rpx;
+  left: 8rpx;
 }
 
-.indicator-item:active::after {
-  opacity: 0.05;
-}
-
-.indicator-selected {
-  background-color: #ebf5ff !important;
-  border: 2rpx solid #3b82f6;
-}
-
-.indicator-selected .indicator-name {
-  color: #1d4ed8;
-}
-
-.indicator-selected .indicator-desc {
-  color: #3b82f6;
-}
-
-.indicator-disabled {
+.package-empty {
   opacity: 0.5;
-  background: #f3f4f6;
+  cursor: not-allowed;
 }
 
 .footer {
@@ -327,16 +335,16 @@ export default {
   left: 0;
   right: 0;
   padding: 24rpx 32rpx;
-  background: #ffffff;
-  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.05);
-  z-index: 999;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
 }
 
 .confirm-btn {
   width: 100%;
   height: 88rpx;
-  background: #3b82f6;
-  color: #ffffff;
+  background: #e5e7eb;
+  color: #666666;
   border-radius: 44rpx;
   font-size: 32rpx;
   font-weight: 600;
@@ -344,15 +352,16 @@ export default {
   align-items: center;
   justify-content: center;
   border: none;
+  transition: all 0.3s ease;
 }
 
-.confirm-btn:active {
+.confirm-btn-active {
+  background: linear-gradient(135deg, #4171f5, #3451b2);
+  color: #ffffff;
+}
+
+.confirm-btn-active:active {
+  transform: scale(0.98);
   opacity: 0.9;
-}
-
-.confirm-btn[disabled] {
-  background: #94a3b8;
-  opacity: 0.7;
-  cursor: not-allowed;
 }
 </style>

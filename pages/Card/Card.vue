@@ -136,7 +136,7 @@ export default {
             const remainingDays = Math.ceil((expireTime - now) / (1000 * 60 * 60 * 24));
             res.result.data.remainingDays = Math.max(0, remainingDays);
           }
-          console.log(res.result.data)
+          
           this.memberInfo = res.result.data;
         }
 		console.log(res.result.data)

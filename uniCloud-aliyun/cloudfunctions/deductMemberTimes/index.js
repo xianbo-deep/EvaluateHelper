@@ -19,7 +19,13 @@ exports.main = async (event, context) => {
         }
         
         const user = userResult.data[0];
-        
+        if (user.membertype === 'monthly' || user.membertype === 'daily') {
+                    return {
+                        code: 0,
+                        message: '会员无限制使用',
+                        remainingTimes: 'unlimited'
+                    };
+                }
         // 验证会员类型和剩余次数
         if (user.membertype !== 'times' || user.remainingTimes <= 0) {
             return {

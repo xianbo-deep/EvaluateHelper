@@ -1,6 +1,6 @@
 'use strict';
 exports.main = async (event, context) => {
-    const { userId, recordId, token, metrics } = event;
+    const { userId, recordId, token, metrics,record, score ,duration} = event;
     
     // 参数验证
     if (!userId || !recordId) {
@@ -29,9 +29,16 @@ exports.main = async (event, context) => {
                 recordId
             })
             .update({
-                totaltoken: token
+                totaltoken: token,
+				record: record,
+				score:score,
+				duration:duration
             });
-            
+        let nextId = 1;
+        const res = await db.collection('MetricResult').orderBy('resultId',"desc").limit(1).get();
+        if(res.data.length > 0){
+        	nextId = res.data[0].feedbackId + 1;
+        }    
         // 直接使用前端传来的处理好的metrics数组
         await db.collection('MetricResult')
             .add({
@@ -39,6 +46,7 @@ exports.main = async (event, context) => {
                 recordId: recordId,
                 evaluationTime: Date.now(),
                 metrics: metrics, // 直接使用，不再需要解析
+				resultId: nextId
             });
             
         return {

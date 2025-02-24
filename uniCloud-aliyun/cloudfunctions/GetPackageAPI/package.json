@@ -1,0 +1,7 @@
+{
+  "name": "GetPackageAPI",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

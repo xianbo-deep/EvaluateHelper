@@ -1,4 +1,4 @@
-andrCertfile=C:/Evaluate/live-evaluation-key.jks
-andrCertAlias=my-key
-andrCertPass=zRJWPmHKm5QARYv3h/NikA==
-storePassword=zRJWPmHKm5QARYv3h/NikA==
+andrCertfile=C:/Evaluate/cloud.keystore
+andrCertAlias=__uni__0cee0d3
+andrCertPass=v/dgLAOCQWvqZbu2v14yMw==
+storePassword=v/dgLAOCQWvqZbu2v14yMw==

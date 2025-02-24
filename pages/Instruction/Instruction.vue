@@ -1,448 +1,708 @@
 <template>
-  <view class="tutorial-container">
-    <!-- 顶部标题区域 -->
-    <view class="header">
-      <text class="main-title">主播成长指南</text>
-      <text class="sub-title">专业的直播技能提升平台</text>
+  <view class="container">
+    <!-- 搜索区域 -->
+    <view class="search-container">
+      <view class="search-box">
+        <uni-icons type="search" size="18" color="#999"></uni-icons>
+        <input 
+          type="text" 
+          v-model="searchText" 
+          placeholder="搜索视频或分类" 
+          confirm-type="search"
+          @confirm="handleSearch"
+          @input="handleSearchInput"
+        />
+        <uni-icons 
+          v-if="searchText" 
+          type="clear" 
+          size="18" 
+          color="#999" 
+          @click="clearSearch"
+        ></uni-icons>
+      </view>
     </view>
-
-    <!-- 导航标签 -->
-    <scroll-view class="nav-tabs" scroll-x="true" show-scrollbar="false">
+    
+    <!-- 分类导航 -->
+    <scroll-view scroll-x class="category-scroll" show-scrollbar="false">
       <view 
-        v-for="(tab, index) in tabs" 
-        :key="index"
-        class="tab-item"
-        :class="{ 'active': currentTab === index }"
-        @tap="switchTab(index)"
+        class="category-item" 
+        v-for="category in categories" 
+        :key="category.id"
+        :class="{'active': currentCategory === category.id}"
+        @tap="switchCategory(category.id)"
       >
-        {{ tab }}
+        {{category.name}}
       </view>
     </scroll-view>
-
-    <!-- 内容区域 -->
-    <scroll-view class="content-area" scroll-y="true">
-      <!-- 推荐书籍区域 -->
-      <view v-if="currentTab === 0" class="section">
+    
+    <!-- 加载错误提示 -->
+    <view v-if="loadError" class="error-tip">
+      <image src="/static/error-icon.png" mode="aspectFit" class="error-icon"></image>
+      <text>{{loadError}}</text>
+      <button class="retry-btn" @tap="loadVideoList">重试</button>
+    </view>
+    
+    <!-- 加载中提示 -->
+    <view v-if="isLoading && !loadError" class="loading-box">
+      <view class="loading-spinner"></view>
+      <text>加载中...</text>
+    </view>
+    
+    <!-- 视频列表 -->
+    <scroll-view 
+      scroll-y 
+      class="video-scroll" 
+      v-if="!loadError && filteredVideoList.length > 0"
+      @scrolltolower="loadMore"
+      refresher-enabled
+      :refresher-triggered="isRefreshing"
+      @refresherrefresh="onRefresh"
+    >
+      <view class="video-grid">
         <view 
-          v-for="(book, index) in books" 
-          :key="index"
-          class="resource-card book-card"
+          class="video-card"
+          v-for="video in filteredVideoList"
+          :key="video._id"
+          @tap="goToVideoDetail(video)"
         >
-          <view class="card-cover" :style="{ backgroundColor: book.color }">
-            <text class="book-emoji">{{ book.emoji }}</text>
+          <!-- 视频缩略图 -->
+          <view class="video-cover">
+            <image 
+              :src="video.thumbnail || '/static/video-placeholder.png'" 
+              mode="aspectFill"
+              class="cover-image"
+            ></image>
+            <view class="play-icon">
+              <view class="play-triangle"></view>
+            </view>
+            <!-- 视频时长 -->
+            <text class="video-duration" v-if="video.duration">
+              {{formatDuration(video.duration)}}
+            </text>
           </view>
-          <view class="card-content">
-            <text class="card-title">{{ book.title }}</text>
-            <text class="card-desc">{{ book.description }}</text>
-            <view class="card-tags">
-              <text 
-                v-for="(tag, tagIndex) in book.tags" 
-                :key="tagIndex" 
-                class="tag"
-              >
-                {{ tag }}
-              </text>
+          
+          <!-- 视频信息 -->
+          <view class="video-info">
+            <text class="video-title">{{video.title}}</text>
+            <view class="category-tag" v-if="video.categoryName">
+              <text>{{video.categoryName}}</text>
             </view>
           </view>
         </view>
       </view>
-
-      <!-- 话术技巧区域 -->
-      <view v-if="currentTab === 1" class="section">
-        <view 
-          v-for="(script, index) in scripts" 
-          :key="index"
-          class="resource-card script-card"
-        >
-          <view class="card-header">
-            <text class="scenario-label">{{ script.scenario }}</text>
-          </view>
-          <view class="card-content">
-            <text class="script-title">示例话术：</text>
-            <text class="script-content">{{ script.content }}</text>
-            <view class="tips-section">
-              <text class="tips-title">要点：</text>
-              <view 
-                v-for="(tip, tipIndex) in script.tips" 
-                :key="tipIndex"
-                class="tip-item"
-              >
-                <text class="tip-bullet">•</text>
-                <text class="tip-text">{{ tip }}</text>
-              </view>
-            </view>
-          </view>
-        </view>
-      </view>
-
-      <!-- 表情管理区域 -->
-      <view v-if="currentTab === 2" class="section">
-        <view 
-          v-for="(expression, index) in expressions" 
-          :key="index"
-          class="resource-card expression-card"
-        >
-          <view class="expression-header">
-            <text class="expression-title">{{ expression.title }}</text>
-            <text class="expression-emoji">{{ expression.emoji }}</text>
-          </view>
-          <view class="card-content">
-            <text class="expression-desc">{{ expression.description }}</text>
-            <view class="do-dont-section">
-              <view class="do-section">
-                <text class="section-title">推荐：</text>
-                <view 
-                  v-for="(item, itemIndex) in expression.dos" 
-                  :key="itemIndex"
-                  class="list-item"
-                >
-                  <text class="check-icon">✓</text>
-                  <text class="item-text">{{ item }}</text>
-                </view>
-              </view>
-              <view class="dont-section">
-                <text class="section-title">避免：</text>
-                <view 
-                  v-for="(item, itemIndex) in expression.donts" 
-                  :key="itemIndex"
-                  class="list-item"
-                >
-                  <text class="cross-icon">✕</text>
-                  <text class="item-text">{{ item }}</text>
-                </view>
-              </view>
-            </view>
-          </view>
-        </view>
+      
+      <!-- 底部加载状态 -->
+      <view class="load-more" v-if="videoList.length > 0">
+        <text v-if="hasMore">正在加载更多...</text>
+        <text v-else>- 到底啦，没有更多视频了 -</text>
       </view>
     </scroll-view>
+    
+    <!-- 搜索结果为空状态 -->
+    <view v-if="!isLoading && searchText && filteredVideoList.length === 0" class="empty-state">
+      <image src="/static/search-empty.png" mode="aspectFit" class="empty-icon"></image>
+      <text>未找到"{{searchText}}"相关视频</text>
+      <button class="retry-btn" @tap="clearSearch">清除搜索</button>
+    </view>
+    
+    <!-- 无视频状态 -->
+    <view v-if="!isLoading && !searchText && videoList.length === 0" class="empty-state">
+      <image src="/static/empty-icon.png" mode="aspectFit" class="empty-icon"></image>
+      <text>暂无视频</text>
+    </view>
   </view>
 </template>
 
 <script>
+import { store } from '/uni_modules/uni-id-pages/common/store.js';	
 export default {
   data() {
     return {
-      currentTab: 0,
-      tabs: ['推荐书籍', '话术技巧', '表情管理'],
-      books: [
-        {
-          title: '直播带货话术指南',
-          description: '系统性讲解直播间互动技巧和话术构建方法',
-          emoji: '📚',
-          color: '#FFE1E6',
-          tags: ['带货技巧', '互动话术', '场景案例']
-        },
-        {
-          title: '直播间气氛调节艺术',
-          description: '教你如何活跃直播间氛围，提升观众粘性',
-          emoji: '🎭',
-          color: '#E1F8FF',
-          tags: ['氛围营造', '互动技巧', '情绪管理']
-        },
-        {
-          title: '直播间危机公关手册',
-          description: '应对直播间突发状况的专业指南',
-          emoji: '🛟',
-          color: '#FFE8D6',
-          tags: ['危机处理', '应急预案', '案例分析']
-        }
+      searchText: '',
+      videoList: [],
+      categories: [
+        { id: 'all', name: '全部' }
       ],
-      scripts: [
-        {
-          scenario: '开场互动',
-          content: '亲爱的宝宝们，终于等到你们来啦！今天给大家带来超多优惠福利，准备好抢购了吗？',
-          tips: [
-            '语气要充满活力和期待感',
-            '设置悬念引发观众好奇',
-            '强调优惠信息增加吸引力'
-          ]
-        },
-        {
-          scenario: '商品介绍',
-          content: '这款产品是我自己每天都在用的，特别是它的【核心卖点】，用了之后真的会惊艳到你们！',
-          tips: [
-            '强调个人使用体验',
-            '突出产品核心优势',
-            '用具体数据支撑观点'
-          ]
-        }
-      ],
-      expressions: [
-        {
-          title: '微笑表情管理',
-          emoji: '😊',
-          description: '专业的微笑能让观众感受到亲和力和信任感',
-          dos: [
-            '眼角微微上扬，展现真诚',
-            '保持自然的面部放松'
-          ],
-          donts: [
-            '过度夸张的假笑',
-            '表情僵硬不自然'
-          ]
-        },
-        {
-          title: '惊喜表情运用',
-          emoji: '😲',
-          description: '合适的惊喜表情能调动直播间的互动氛围',
-          dos: [
-            '眼神富有活力',
-            '配合适当的肢体语言'
-          ],
-          donts: [
-            '表情过于夸张',
-            '频繁重复同一表情'
-          ]
-        }
-      ]
+      currentCategory: 'all',
+      isLoading: false,
+      isRefreshing: false,
+      loadError: '',
+      categoryCache: {},
+      page: 1,
+      pageSize: 10,
+      hasMore: true,
+      debounceTimer: null
     }
   },
+  
+  computed: {
+    // 过滤后的视频列表
+    filteredVideoList() {
+      if (!this.searchText && this.currentCategory === 'all') {
+        return this.videoList;
+      }
+      
+      return this.videoList.filter(video => {
+        // 根据分类筛选
+        const categoryMatch = this.currentCategory === 'all' || 
+                            video.categoryId === this.currentCategory;
+        
+        // 搜索文本为空时只筛选分类
+        if (!this.searchText) {
+          return categoryMatch;
+        }
+        
+        // 根据标题和分类名称搜索
+        const searchLower = this.searchText.toLowerCase();
+        const titleMatch = video.title.toLowerCase().includes(searchLower);
+        const categoryNameMatch = video.categoryName && 
+                                video.categoryName.toLowerCase().includes(searchLower);
+        
+        // 同时匹配分类和搜索条件
+        return categoryMatch && (titleMatch || categoryNameMatch);
+      });
+    }
+  },
+  
+  onLoad() {
+	if(!store.hasLogin){
+		uni.showToast({
+			title: '请先登录',
+			icon:'none'
+		})
+		uni.switchTab({
+			url:'/pages/MyPage/MyPage'
+		})
+	}
+    this.loadCategories();
+    this.loadVideoList(true);
+  },
+  
   methods: {
-    switchTab(index) {
-      this.currentTab = index;
+    // 加载分类数据
+    async loadCategories() {
+      try {
+        const db = uniCloud.database();
+        const { result } = await db.collection('Category')
+          .orderBy('createdAt', 'asc')
+          .get();
+        
+        if (result && result.data && result.data.length > 0) {
+          // 建立分类缓存
+          result.data.forEach(category => {
+            const id = category.categoryId || category._id;
+            this.categoryCache[id] = category.name;
+          });
+          
+          // 更新分类列表
+          this.categories = [
+            { id: 'all', name: '全部' },
+            ...result.data.map(category => ({
+              id: category.categoryId || category._id,
+              name: category.name
+            }))
+          ];
+        }
+      } catch (err) {
+        console.warn('获取分类数据失败:', err);
+        // 使用测试分类数据
+        this.categoryCache = this.getTestCategories();
+        this.categories = [
+          { id: 'all', name: '全部' },
+          ...Object.entries(this.categoryCache).map(([id, name]) => ({
+            id,
+            name
+          }))
+        ];
+      }
+    },
+    
+    // 加载视频列表
+    async loadVideoList(reset = false) {
+      if (this.isLoading) return;
+      
+      if (reset) {
+        this.page = 1;
+        this.hasMore = true;
+        this.videoList = [];
+      }
+      
+      if (!this.hasMore && !reset) return;
+      
+      this.isLoading = true;
+      this.loadError = '';
+      
+      try {
+        // 尝试从数据库获取视频
+        try {
+          const db = uniCloud.database();
+          let query = db.collection('Video')
+            .orderBy('uploadTime', 'desc');
+            
+          // 如果选择了特定分类且不是搜索模式，添加分类过滤
+          if (this.currentCategory !== 'all' && !this.searchText) {
+            query = query.where({ categoryId: this.currentCategory });
+          }
+          // 执行分页查询
+          const { result } = await query
+            .skip((this.page - 1) * this.pageSize)
+            .limit(this.pageSize)
+            .get();
+            
+          if (result && result.data) {
+            // 添加分类名称
+            const newVideos = result.data.map(video => {
+              return {
+                ...video,
+                categoryName: this.getCategoryName(video.categoryId)
+              };
+            });
+            
+            // 更新视频列表
+            if (reset) {
+              this.videoList = newVideos;
+            } else {
+              this.videoList = [...this.videoList, ...newVideos];
+            }
+            
+            // 检查是否还有更多数据
+            this.hasMore = newVideos.length === this.pageSize;
+          } else {
+            throw new Error('未获取到视频数据');
+          }
+        } catch (dbError) {
+          console.warn('数据库获取视频列表失败:', dbError);
+          
+          // 仅在初始加载时使用测试数据
+          if (reset && this.videoList.length === 0) {
+            this.videoList = this.getTestVideoData();
+            this.hasMore = false;
+          }
+        }
+      } catch (error) {
+        console.error('加载视频列表失败:', error);
+        this.loadError = '加载失败，请重试';
+      } finally {
+        this.isLoading = false;
+        this.isRefreshing = false;
+      }
+    },
+    
+    // 获取分类名称
+    getCategoryName(categoryId) {
+      if (!categoryId) return '未分类';
+      return this.categoryCache[categoryId] || '未知分类';
+    },
+    
+    // 切换分类
+    switchCategory(categoryId) {
+      if (this.currentCategory === categoryId) return;
+      this.currentCategory = categoryId;
+      
+      // 如果没有搜索关键词，切换分类时重新加载数据
+      if (!this.searchText) {
+        this.loadVideoList(true);
+      }
+      // 否则仅通过计算属性筛选现有数据
+    },
+    
+    // 处理搜索输入
+    handleSearchInput() {
+      // 防抖处理，避免频繁触发搜索
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = setTimeout(() => {
+        // 如果搜索框为空，恢复分类筛选的结果
+        if (!this.searchText && this.currentCategory !== 'all') {
+          this.loadVideoList(true);
+        }
+      }, 500);
+    },
+    
+    // 处理搜索确认
+    handleSearch() {
+      // 如果搜索框为空，不执行任何操作
+      if (!this.searchText.trim()) return;
+      
+      // 如果当前分类不是"全部"且搜索文本不为空，先加载全部数据
+      if (this.currentCategory !== 'all') {
+        // 保存当前分类以便搜索后恢复
+        const savedCategory = this.currentCategory;
+        
+        // 临时切换到"全部"分类
+        this.currentCategory = 'all';
+        
+        // 加载数据后恢复分类（但显示的是搜索结果）
+        this.loadVideoList(true).then(() => {
+          this.currentCategory = savedCategory;
+        });
+      } else {
+        // 直接通过计算属性筛选现有数据
+      }
+    },
+    
+    // 清除搜索
+    clearSearch() {
+      this.searchText = '';
+      // 根据当前选中的分类重新加载数据
+      this.loadVideoList(true);
+    },
+    
+    // 下拉刷新
+    onRefresh() {
+      this.isRefreshing = true;
+      this.loadVideoList(true);
+    },
+    
+    // 加载更多
+    loadMore() {
+      if (!this.isLoading && this.hasMore && !this.searchText) {
+        this.page++;
+        this.loadVideoList();
+      }
+    },
+    
+    // 跳转到视频详情页
+    goToVideoDetail(video) {
+      // 将视频信息存储到全局数据，以便详情页获取
+      getApp().globalData = getApp().globalData || {};
+      getApp().globalData.currentVideo = video;
+      
+      // 跳转到详情页
+      uni.navigateTo({
+        url: `/pages/video/video?id=${video._id}`
+      });
+    },
+    
+    // 格式化时长
+    formatDuration(seconds) {
+      if (!seconds) return '00:00';
+      
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = Math.floor(seconds % 60);
+      
+      if (minutes >= 60) {
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = minutes % 60;
+        return `${hours}:${String(remainingMinutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+      }
+      
+      return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+    },
+    
+    // 获取测试分类数据
+    getTestCategories() {
+      return {
+        'frontend': '前端开发',
+        'backend': '后端开发',
+        'database': '数据库',
+        'design': '设计',
+        'mobile': '移动开发'
+      };
+    },
+    
+    // 获取测试视频数据
+    getTestVideoData() {
+      return [
+        {
+          _id: '1',
+          title: 'Web前端开发入门教程',
+          url: 'https://media.w3.org/2010/05/sintel/trailer.mp4',
+          thumbnail: '/static/video-placeholder.png',
+          duration: 52,
+          categoryId: 'frontend',
+          categoryName: '前端开发'
+        },
+        {
+          _id: '2',
+          title: 'UI设计基础与配色方案',
+          url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+          thumbnail: '/static/video-placeholder.png',
+          duration: 8,
+          categoryId: 'design',
+          categoryName: '设计'
+        },
+        {
+          _id: '3',
+          title: 'Node.js服务器开发实战',
+          url: 'https://media.w3.org/2010/05/bunny/trailer.mp4',
+          thumbnail: '/static/video-placeholder.png',
+          duration: 33,
+          categoryId: 'backend',
+          categoryName: '后端开发'
+        },
+        {
+          _id: '4',
+          title: 'MySQL数据库优化技巧',
+          url: 'https://media.w3.org/2010/05/bunny/movie.mp4',
+          thumbnail: '/static/video-placeholder.png',
+          duration: 28,
+          categoryId: 'database',
+          categoryName: '数据库'
+        }
+      ];
     }
   }
-}
+};
 </script>
 
 <style>
-.tutorial-container {
+.container {
+  background-color: #f5f7fa;
   min-height: 100vh;
-  background: #f8fafc;
-  padding: 40rpx 20rpx;
-}
-
-.header {
-  padding: 40rpx 30rpx;
-  text-align: center;
-}
-
-.main-title {
-  font-size: 44rpx;
-  font-weight: bold;
-  color: #1a1a1a;
-  margin-bottom: 16rpx;
-  display: block;
-}
-
-.sub-title {
-  font-size: 28rpx;
-  color: #666;
-  display: block;
-}
-
-.nav-tabs {
   display: flex;
-  padding: 20rpx 30rpx;
-  background: #fff;
-  border-radius: 16rpx;
-  margin-bottom: 30rpx;
-  white-space: nowrap;
+  flex-direction: column;
 }
 
-.tab-item {
+.search-container {
+  background-color: #fff;
+  padding: 20rpx 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background-color: #f2f3f5;
+  border-radius: 40rpx;
+  padding: 15rpx 20rpx;
+}
+
+.search-box uni-icons {
+  margin: 0 15rpx;
+}
+
+.search-box input {
+  flex: 1;
+  font-size: 28rpx;
+  height: 40rpx;
+  color: #333;
+}
+
+.category-scroll {
+  background-color: #fff;
+  white-space: nowrap;
+  padding: 15rpx 0;
+  margin-bottom: 15rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.03);
+}
+
+.category-item {
   display: inline-block;
-  padding: 16rpx 40rpx;
+  padding: 12rpx 30rpx;
+  margin: 0 10rpx;
   font-size: 28rpx;
   color: #666;
+  background-color: #f2f3f5;
   border-radius: 30rpx;
-  margin-right: 20rpx;
   transition: all 0.3s;
 }
 
-.tab-item.active {
-  background: #6366f1;
+.category-item:first-child {
+  margin-left: 20rpx;
+}
+
+.category-item:last-child {
+  margin-right: 20rpx;
+}
+
+.category-item.active {
   color: #fff;
-  font-weight: 500;
+  background: linear-gradient(to right, #3b7dff, #42a5ff);
+  box-shadow: 0 4rpx 10rpx rgba(59, 125, 255, 0.2);
 }
 
-.content-area {
-  height: calc(100vh - 300rpx);
+.loading-box {
+  padding: 80rpx 0;
+  text-align: center;
+  color: #999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
-.section {
-  padding: 20rpx;
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid rgba(66, 165, 255, 0.1);
+  border-left-color: #42a5ff;
+  border-radius: 50%;
+  margin-bottom: 20rpx;
+  animation: spin 1s linear infinite;
 }
 
-.resource-card {
-  background: #fff;
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-tip {
+  margin: 40rpx;
+  padding: 50rpx 30rpx;
+  text-align: center;
+  background-color: #fff;
   border-radius: 20rpx;
-  margin-bottom: 30rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.06);
+  color: #666;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.error-icon {
+  width: 100rpx;
+  height: 100rpx;
+  margin-bottom: 20rpx;
+}
+
+.retry-btn {
+  margin-top: 30rpx;
+  padding: 15rpx 50rpx;
+  font-size: 28rpx;
+  color: #fff;
+  border: none;
+  border-radius: 50rpx;
+  background: linear-gradient(to right, #3b7dff, #42a5ff);
+  box-shadow: 0 4rpx 16rpx rgba(66, 165, 255, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.retry-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 2rpx 8rpx rgba(66, 165, 255, 0.2);
+}
+
+.video-scroll {
+  flex: 1;
   overflow: hidden;
 }
 
-.card-cover {
-  height: 160rpx;
+.video-grid {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 15rpx;
+}
+
+.video-card {
+  width: calc(50% - 20rpx);
+  margin: 10rpx;
+  background-color: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.08);
+  transition: transform 0.3s, box-shadow 0.3s;
+  position: relative;
+}
+
+.video-card:active {
+  transform: scale(0.96);
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
+}
+
+.video-cover {
+  position: relative;
+  width: 100%;
+  height: 200rpx;
+  background-color: #eee;
+  overflow: hidden;
+}
+
+.cover-image {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.5s;
+}
+
+.video-card:active .cover-image {
+  transform: scale(1.05);
+}
+
+.play-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50rpx;
+  height: 50rpx;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.book-emoji {
-  font-size: 80rpx;
+.play-triangle {
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 8rpx 0 8rpx 16rpx;
+  border-color: transparent transparent transparent #fff;
+  margin-left: 4rpx;
 }
 
-.card-content {
-  padding: 30rpx;
+.video-duration {
+  position: absolute;
+  right: 10rpx;
+  bottom: 10rpx;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 22rpx;
+  padding: 4rpx 10rpx;
+  border-radius: 4rpx;
 }
 
-.card-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #1a1a1a;
-  margin-bottom: 16rpx;
-  display: block;
+.video-info {
+  padding: 16rpx;
+  position: relative;
 }
 
-.card-desc {
-  font-size: 28rpx;
-  color: #666;
-  line-height: 1.5;
-  margin-bottom: 20rpx;
-  display: block;
+.video-title {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+  margin-bottom: 12rpx;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-height: 72rpx;
+  line-height: 1.4;
 }
 
-.card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
+.category-tag {
+  display: inline-block;
+  font-size: 20rpx;
+  color: #3b7dff;
+  background-color: rgba(59, 125, 255, 0.1);
+  padding: 4rpx 12rpx;
+  border-radius: 6rpx;
 }
 
-.tag {
-  font-size: 24rpx;
-  color: #6366f1;
-  background: rgba(99, 102, 241, 0.1);
-  padding: 8rpx 20rpx;
+.empty-state {
+  margin: 60rpx 30rpx;
+  padding: 80rpx 0;
+  text-align: center;
+  color: #999;
+  background-color: #fff;
   border-radius: 20rpx;
-}
-
-.script-card {
-  border-left: 8rpx solid #6366f1;
-}
-
-.card-header {
-  padding: 20rpx 30rpx;
-  background: rgba(99, 102, 241, 0.1);
-}
-
-.scenario-label {
-  font-size: 28rpx;
-  color: #6366f1;
-  font-weight: 500;
-}
-
-.script-title {
-  font-size: 28rpx;
-  color: #1a1a1a;
-  font-weight: 500;
-  margin-bottom: 16rpx;
-  display: block;
-}
-
-.script-content {
-  font-size: 28rpx;
-  color: #666;
-  line-height: 1.6;
-  margin-bottom: 30rpx;
-  display: block;
-}
-
-.tips-section {
-  background: #f8fafc;
-  padding: 20rpx;
-  border-radius: 12rpx;
-}
-
-.tips-title {
-  font-size: 28rpx;
-  color: #1a1a1a;
-  font-weight: 500;
-  margin-bottom: 16rpx;
-  display: block;
-}
-
-.tip-item {
+  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.06);
   display: flex;
-  align-items: flex-start;
-  margin-bottom: 12rpx;
-}
-
-.tip-bullet {
-  color: #6366f1;
-  margin-right: 12rpx;
-}
-
-.tip-text {
-  font-size: 26rpx;
-  color: #666;
-  flex: 1;
-}
-
-.expression-card {
-  border-top: 8rpx solid #6366f1;
-}
-
-.expression-header {
-  padding: 30rpx;
-  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  border-bottom: 2rpx solid #f0f0f0;
 }
 
-.expression-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #1a1a1a;
-}
-
-.expression-emoji {
-  font-size: 48rpx;
-}
-
-.expression-desc {
-  font-size: 28rpx;
-  color: #666;
-  line-height: 1.6;
+.empty-icon {
+  width: 180rpx;
+  height: 180rpx;
   margin-bottom: 30rpx;
-  display: block;
 }
 
-.do-dont-section {
-  background: #f8fafc;
-  padding: 20rpx;
-  border-radius: 12rpx;
-}
-
-.section-title {
-  font-size: 28rpx;
-  color: #1a1a1a;
-  font-weight: 500;
-  margin-bottom: 16rpx;
-  display: block;
-}
-
-.list-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 12rpx;
-}
-
-.check-icon {
-  color: #10b981;
-  margin-right: 12rpx;
-}
-
-.cross-icon {
-  color: #ef4444;
-  margin-right: 12rpx;
-}
-
-.item-text {
-  font-size: 26rpx;
-  color: #666;
-  flex: 1;
+.load-more {
+  text-align: center;
+  color: #999;
+  font-size: 24rpx;
+  padding: 30rpx 0 40rpx;
 }
 </style>

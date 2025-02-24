@@ -1,8 +1,15 @@
 'use strict';
 const db = uniCloud.database();
 const dbCmd = db.command;
+
 exports.main = async (event, context) => {
   const { cardNumber, cardPassword, userId } = event;
+  if (!cardNumber || !cardPassword || !userId) {
+    return {
+      code: -1,
+      message: '缺少必要参数'
+    };
+  }
   
   try {
     // 1. 查找卡密
@@ -42,22 +49,53 @@ exports.main = async (event, context) => {
       .where({userId: userId})
       .get();
       
-    const now = Date.now();
+    if (!userInfo.data || userInfo.data.length === 0) {
+      return {
+        code: -1,
+        message: '用户不存在'
+      };
+    }
+
+    const user = userInfo.data[0];
+    const now = new Date();
     let expireTime;
     let remainingTimes;
     let remainingDays;
-    
+
+    // 检查会员是否过期
+    const isExpired = !user.memberExpireTime || new Date(user.memberExpireTime) < now;
+    const hasRemainingTimes = user.membertype === 'times' && (user.remainingTimes || 0) > 0;
+
+    // 判断卡类型兼容性
+    if (!isExpired) { // 只在会员未过期时检查
+      if (card.cardType === 'times' && ['monthly', 'daily'].includes(user.membertype)) {
+        return {
+          code: -1,
+          message: '您当前是时长卡会员，不能购买次卡'
+        };
+      }
+      
+      if (['monthly', 'daily'].includes(card.cardType) && user.membertype === 'times' && hasRemainingTimes) {
+        return {
+          code: -1,
+          message: '您当前是次卡会员且还有剩余次数，不能购买时长卡'
+        };
+      }
+    }
+
+    // 计算会员权益
     if (card.cardType === 'times') {
       // 次卡：累加次数
-      remainingTimes = (userInfo.data[0].remainingTimes || 0) + card.value;
+      remainingTimes = (user.remainingTimes || 0) + card.value;
     } else {
       // 日卡/月卡：计算到期时间
-      if (userInfo.data[0].memberStatus === 'active' && 
-          ['daily', 'monthly'].includes(userInfo.data[0].membertype)) {
-        // 如果已是活跃的日卡或月卡会员，从当前到期时间开始累加
-        expireTime = new Date(userInfo.data[0].memberExpireTime);
+      if (user.memberStatus === 'active' && 
+          ['daily', 'monthly'].includes(user.membertype) && 
+          !isExpired) {
+        // 如果是未过期的活跃会员，从当前到期时间开始累加
+        expireTime = new Date(user.memberExpireTime);
       } else {
-        // 否则从当前时间开始计算
+        // 已过期或非活跃会员从当前时间开始计算
         expireTime = new Date(now);
       }
       
@@ -65,12 +103,10 @@ exports.main = async (event, context) => {
       if (card.cardType === 'daily') {
         expireTime.setDate(expireTime.getDate() + card.value);
       } else if (card.cardType === 'monthly') {
-        // 将月卡转换为天数（按30天/月计算）
         const daysInMonth = card.value * 30;
         expireTime.setDate(expireTime.getDate() + daysInMonth);
       }
       
-      // 计算剩余天数
       remainingDays = Math.ceil((expireTime.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     }
     
@@ -95,22 +131,25 @@ exports.main = async (event, context) => {
         ...(card.cardType === 'times' 
           ? { remainingTimes }
           : { 
-              memberStartTime: userInfo.data[0].memberStatus === 'active' ? 
-                userInfo.data[0].memberStartTime : now,
+              memberStartTime: user.memberStatus === 'active' && !isExpired ? 
+                user.memberStartTime : now,
               memberExpireTime: expireTime,
               remainingDays: remainingDays
             }
         )
       });
+
+    // 6. 添加兑换记录
     await db.collection('ExchangeRecord')
-	.add({
-		userId: userId,
-		cardId: cardNumber,
-		cardCode: cardPassword,
-		redeemTime: Date.now(),
-		cardType: card.cardType,
-		cardValue: card.value
-	})
+      .add({
+        userId: userId,
+        cardId: cardNumber,
+        cardCode: cardPassword,
+        redeemTime: Date.now(),
+        cardType: card.cardType,
+        cardValue: card.value
+      });
+
     return {
       code: 0,
       message: '兑换成功',

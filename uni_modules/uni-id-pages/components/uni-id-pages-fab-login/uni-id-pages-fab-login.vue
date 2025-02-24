@@ -8,9 +8,7 @@
 			</view>
 		</view>
 	</view>
-	<view class="">
-		nihao
-	</view>
+	
 </template>
 <script>
 	import config from '@/uni_modules/uni-id-pages/config.js'

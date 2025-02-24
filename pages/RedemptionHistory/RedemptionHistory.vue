@@ -69,14 +69,12 @@ export default {
     async loadRecords() {
       this.loading = true
       try {
-        const res = await uniCloud.callFunction({
-          name: 'getExchangeRecords',
-          data: {
-            userId: store.userInfo._id
-          }
-        })
+        const res = await uniCloud.database().collection('ExchangeRecord')
+		.where({userId:store.userInfo._id})
+		.orderBy('redeemTime','desc')
+		.get()
         
-        if (res.result.code === 0) {
+        if (res.result.data) {
           this.records = res.result.data
         } else {
           uni.showToast({
@@ -111,7 +109,7 @@ export default {
         case 'daily':
           return `${value}天`
         case 'monthly':
-          return `${value}天`  // 月卡也显示天数
+          return `${value}个月`  // 月卡也显示天数
         default:
           return value
       }

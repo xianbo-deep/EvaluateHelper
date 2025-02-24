@@ -30,5 +30,11 @@
       "bsonType": "int",
       "description": "卡密面值：日卡/月卡为天数，次卡为次数"
     }
+  },
+  "permission": {
+    "read": true,
+    "create": false,
+    "update": false,
+    "delete": false
   }
 }

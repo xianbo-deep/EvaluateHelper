@@ -136,11 +136,16 @@ export default {
         }
 
         const userId = store.userInfo._id;
+		console.log(userId)
         const res = await uniCloud.callFunction({
           name: 'Getdetails',
           data: { userId, recordId }
         });
-
+		
+		 console.log('完整响应:', res);           // 打印完整响应
+		    console.log('result:', res.result);      // 打印 result 对象
+		    console.log('data:', res.result.data);   // 打印 data
+		
         if (!res.result.success) {
           throw new Error(res.result.message || '获取数据失败');
         }

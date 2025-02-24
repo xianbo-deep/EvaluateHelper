@@ -3,19 +3,21 @@ exports.main = async (event, context) => {
     const db = uniCloud.database();
     try {
         // 从Metric表中获取所有指标
-        const res = await db.collection('Metric')
+        const res = await db.collection('Package')
             .field({  // 只获取需要的字段
-                'metricId': true,  // 假设数据库中是metricId
-                'metricname': true, // 假设数据库中是metricname
-                'description': true
+                'package_name': true,  // 假设数据库中是metricId
+                'description': true ,// 假设数据库中是metricname
+				'package_id': true,
+				'status':true
             })
             .get();
 
         // 转换数据格式以匹配前端需求
         const formattedData = res.data.map(item => ({
-            id: item.metricId,     // 转换字段名以匹配前端
-            name: item.metricname,
-            description: item.description
+			package_id: item.package_id,
+            package_name: item.package_name,         // 转换字段名以匹配前端
+            description: item.description,
+			status:item.status
         }));
 
         return {

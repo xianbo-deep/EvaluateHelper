@@ -1,8 +1,8 @@
 'use strict';
 exports.main = async (event, context) => {
     const db = uniCloud.database();
-    const { recordId, userId } = event;
-    
+    let { recordId, userId } = event;
+    recordId = parseInt(recordId);
     try {
         // 获取评估记录
         const res = await db.collection('AssessmentRecord')
@@ -12,7 +12,6 @@ exports.main = async (event, context) => {
             })
             .get();
             
-        // 检查是否找到记录
         if (!res.data || res.data.length === 0) {
             return {
                 success: false,
@@ -25,15 +24,14 @@ exports.main = async (event, context) => {
             .where({
                 recordId: recordId
             })
-			.field({
-				metrics: true
-			})
+            .field({
+                metrics: true
+            })
             .get();
             
-        // 从返回的数组中获取第一条记录
         const record = res.data[0];
-        const metrics = metricsRes.data || [];
         
+        // 直接返回 metrics 数组作为一个对象的属性
         return {
             success: true,
             data: {
@@ -42,7 +40,9 @@ exports.main = async (event, context) => {
                 score: record.score,
                 duration: record.duration,
                 record: record.record,
-                metrics: metrics
+                metrics: [{
+                    metrics: metricsRes.data[0]?.metrics || [] // 获取第一条记录的 metrics 字段
+                }]
             }
         };
         
