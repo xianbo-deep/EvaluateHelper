@@ -29,12 +29,18 @@
             </view>
           </view>
         </view>
+		<view class="subject-name-container">
+		  <view class="subject-label">评测对象</view>
+		  <view class="subject-name">{{name}}</view>
+		</view>
         <view class="score-info">
           <view class="score-date">评测时间：{{formatDate(reportData.assessmentTime)}}</view>
           <view class="duration">用时：{{reportData.duration}}分钟</view>
         </view>
       </view>
-
+		<view class="video-details" @tap="gotovideodetails">
+			视频详情
+		</view>
       <!-- 分项指标评分 -->
       <view class="metrics-section">
         <view class="section-title">能力指标</view>
@@ -104,9 +110,11 @@ import { store } from '/uni_modules/uni-id-pages/common/store.js';
 export default {
   data() {
     return {
+	  recordId:'',
       loading: true,
       error: false,
       errorMessage: '',
+	  name:'',
       reportData: {
         score: 0,
         assessmentTime: '',
@@ -122,6 +130,7 @@ export default {
       this.handleError('记录ID不存在');
       return;
     }
+	this.recordId = option.recordId;
     this.fetchReportData(option.recordId);
   },
 
@@ -134,7 +143,11 @@ export default {
         if (!store.hasLogin) {
           throw new Error('请先登录');
         }
-
+		const { result } = await uniCloud.database().collection('AssessmentRecord')
+        .where({recordId:Number(recordId)})
+        .field('name')
+        .get()
+        this.name = result.data[0].name; // 确保正确获取name字段
         const userId = store.userInfo._id;
 		console.log(userId)
         const res = await uniCloud.callFunction({
@@ -159,7 +172,7 @@ export default {
         this.loading = false;
       }
     },
-
+	
     formatReportData(data) {
       return {
         score: data.score || 0,
@@ -194,7 +207,12 @@ export default {
       const currentPage = pages[pages.length - 1];
       const options = currentPage.options;
       this.fetchReportData(options.recordId);
-    }
+    },
+	gotovideodetails(){
+	   uni.navigateTo({
+	   	url:`/pages/videodetail/videodetail?id=${this.recordId}`
+	   })
+	}
   }
 };
 </script>
@@ -324,8 +342,59 @@ export default {
   font-size: 24rpx;
   color: rgba(30, 41, 59, 0.5);
 }
+.subject-name-container {
+  margin: 30rpx auto 24rpx;
+  text-align: center;
+  background: #ffffff;
+  border-radius: 12rpx;
+  padding: 16rpx 28rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  max-width: 85%;
+  position: relative;
+  overflow: hidden;
+  border: none;
+  animation: fadeIn 0.5s ease-out;
+}
 
+/* 简化的顶部线条 */
+.subject-name-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2rpx;
+  background: #6366F1;
+}
 
+/* 移除底部装饰 */
+.subject-label {
+  font-size: 22rpx;
+  color: #64748B;
+  margin-bottom: 6rpx;
+  font-weight: 500;
+  display: block;
+}
+
+.subject-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #4F46E5;
+  letter-spacing: 0.5rpx;
+  padding: 2rpx 0;
+  display: block;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 /* 其他样式保持不变 */
 .metrics-section {
   background: rgba(255, 255, 255, 0.8);
@@ -481,6 +550,25 @@ export default {
   line-height: 1.6;
 }
 
+.video-details {
+  margin: 20rpx auto;
+  padding: 20rpx 40rpx;
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  border-radius: 40rpx;
+  text-align: center;
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 500;
+  letter-spacing: 2rpx;
+  box-shadow: 0 8rpx 20rpx rgba(37, 117, 252, 0.3);
+  transition: all 0.3s ease;
+  max-width: 300rpx;
+}
+
+.video-details:active {
+  transform: scale(0.95);
+  box-shadow: 0 4rpx 10rpx rgba(37, 117, 252, 0.2);
+}
 @keyframes float {
   0% {
     transform: translate(0, 0);

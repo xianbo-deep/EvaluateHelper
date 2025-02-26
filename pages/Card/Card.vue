@@ -42,7 +42,12 @@
       <text>您有一次免费体验机会</text>
       <button class="trial-btn" @tap="handleFreeTrial">立即体验</button>
     </view>
-
+	<view class="card-category">
+		<button :class="{'active': selectedCardType === 'review'}" @tap="selectCardType('review')">测评卡</button>
+		<button :class="{'active': selectedCardType === 'tutorial'}" @tap="selectCardType('tutorial')">教程卡</button>
+		<button :class="{'active': selectedCardType === 'streamer'}" @tap="selectCardType('streamer')">主播卡</button>
+		<button :class="{'active': selectedCardType === 'enterprise'}" @tap="selectCardType('enterprise')">企业卡</button>
+	</view>
     <!-- 卡密输入区域 -->
     <view class="input-section">
       <view class="input-group">
@@ -81,7 +86,7 @@
       <view class="instruction-title">使用说明</view>
       <view class="instruction-item">1. 请确保输入的卡号和卡密正确</view>
       <view class="instruction-item">2. 卡密激活后即时生效</view>
-      <view class="instruction-item">3. 当前会员未过期时激活新卡密，有效期将自动叠加(次卡与日卡月卡不可叠加)</view>
+      <view class="instruction-item">3. 当前会员未过期时激活新卡密，有效期将自动叠加</view>
       <view class="instruction-item">4. 如遇到问题请提交反馈</view>
     </view>
 	</template>
@@ -98,11 +103,13 @@ export default {
       cardPassword: '',
 	  pageLoading: true, // 添加页面加载状态
       loading: false,
+	  selectedCardType:'none',
       memberInfo: {
         memberStatus: 'none', // 会员状态：none-非会员，active-有效会员
         membertype: 'none',   // 会员类型：none-非会员，daily-日卡，monthly-月卡，times-次卡
         remainingTimes: 0,    // 剩余次数（次卡用）
-        remainingDays: 0,     // 剩余天数（日卡/月卡用）
+        remainingDays: 0,    // 剩余天数（日卡/月卡用）
+		cardCategory: 'none',
         usedTrial: false,     // 是否已使用过试用
         memberExpireTime: '', // 会员到期时间
       },
@@ -150,7 +157,10 @@ export default {
 		  this.pageLoading = false
 	  }
     },
-
+	
+	selectCardType(type) {
+	      this.selectedCardType = type;
+	},
     // 处理输入变化
     onInputChange() {
       this.isValid = this.cardNumber.length > 0 && this.cardPassword.length > 0;
@@ -160,14 +170,15 @@ export default {
     async handleActivate() {
       if (!this.isValid || this.loading) return;
       const userId = store.userInfo._id;
-      this.loading = true;
+      this.loading = true;    
       try {
         const { result } = await uniCloud.callFunction({
           name: 'activateCard',
           data: {
             userId: store.userInfo._id,
             cardNumber: this.cardNumber,
-            cardPassword: this.cardPassword
+            cardPassword: this.cardPassword,
+			cardCategory: this.selectedCardType
           }
         });
 		
@@ -244,18 +255,45 @@ export default {
 
     // 获取会员状态文本
     getMemberStatusText() {
-      const { memberStatus, membertype } = this.memberInfo;
+      const { memberStatus, membertype, cardCategory } = this.memberInfo;
       if (memberStatus === 'active') {
+        // 获取卡类型文本
+        let typeText = '';
         switch (membertype) {
           case 'daily':
-            return '日卡会员';
+            typeText = '日卡';
+            break;
           case 'monthly':
-            return '月卡会员';
+            typeText = '月卡';
+            break;
           case 'times':
-            return '次卡会员';
-          default:
-            return '试用会员';
+            typeText = '试用卡';
+			 break;
+			default:
+			  return '普通用户'
         }
+        
+        // 获取卡类别文本
+        let categoryText = '';
+        switch (cardCategory) {
+          case 'streamer':
+            categoryText = '主播卡';
+            break;
+          case 'review':
+            categoryText = '测评卡';
+            break;
+          case 'tutorial':
+            categoryText = '教程卡';
+            break;
+          case 'enterprise':
+            categoryText = '企业卡';
+            break;
+          default:
+            categoryText = '';
+        }
+        
+        // 如果有卡类别，返回"卡类别+卡类型"，否则只返回卡类型
+        return categoryText ? `${categoryText}${typeText}会员` : `${typeText}会员`;
       }
       return '普通用户';
     },
@@ -275,6 +313,36 @@ export default {
   padding: 32rpx;
   background-color: #f8fafc;
   min-height: 100vh;
+}
+.card-category {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 32rpx;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.card-category button {
+  flex: 1;
+  min-width: 160rpx;
+  font-size: 26rpx;
+  padding: 16rpx 0;
+  background: #fff;
+  color: #666;
+  border: 1px solid #e0e0e0;
+  border-radius: 8rpx;
+  transition: all 0.3s ease;
+}
+
+.card-category button.active {
+  background: rgba(52, 148, 230, 0.1);
+  color: #3494E6;
+  border-color: #3494E6;
+  font-weight: 500;
+}
+
+.card-category button:active {
+  transform: scale(0.98);
 }
 
 .card-info {

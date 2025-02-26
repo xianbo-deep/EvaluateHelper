@@ -715,6 +715,33 @@
   background-color: #f8fafc;
   min-height: 100vh;
 }
+.card-category {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.card-category uni-button {
+  flex: 1;
+  min-width: 5rem;
+  font-size: 0.8125rem;
+  padding: 0.5rem 0;
+  background: #fff;
+  color: #666;
+  border: 1px solid #e0e0e0;
+  border-radius: 0.25rem;
+  transition: all 0.3s ease;
+}
+.card-category uni-button.active {
+  background: rgba(52, 148, 230, 0.1);
+  color: #3494E6;
+  border-color: #3494E6;
+  font-weight: 500;
+}
+.card-category uni-button:active {
+  transform: scale(0.98);
+}
 .card-info {
   background: #ffffff;
   border-radius: 0.5rem;

@@ -77,10 +77,10 @@
 			}
 		},
 		{
-			"path" : "pages/register/register",
+			"path" : "pages/videodetail/videodetail",
 			"style" : 
 			{
-				"navigationBarTitleText" : "注册"
+				"navigationBarTitleText" : "视频详情"
 			}
 		}
 	,{

@@ -180,7 +180,7 @@ export default {
           this.watchedDuration = progress.watchedDuration || 0
           this.completed = progress.completed || false
           this.progress = progress.progress || 0
-          this.lastPosition = progress.lastPosition || 0
+          this.lastPosition = progress.watchedDuration || 0
           this.viewCount = progress.viewCount || 1
     
           if (this.lastPosition > 0 && !this.completed) {
@@ -201,18 +201,10 @@ export default {
         this.videoContext = uni.createVideoContext('videoPlayer', this)
       }
       
-      uni.showModal({
-        title: '继续播放',
-        content: `是否从上次观看的位置（${this.formatDuration(this.lastPosition)}）继续播放？`,
-        success: (res) => {
-          if (res.confirm && this.videoContext) {
-            this.videoContext.seek(this.lastPosition)
-            setTimeout(() => {
-              this.videoContext.play()
-            }, 100)
-          }
-        }
-      })
+     this.videoContext.seek(this.lastPosition)
+     setTimeout(() => {
+       this.videoContext.play()
+     }, 100)
     },
     
     onVideoLoaded() {

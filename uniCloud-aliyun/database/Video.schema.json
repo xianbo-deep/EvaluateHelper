@@ -25,6 +25,10 @@
       "bsonType": "string",
       "description": "视频存储地址"
     },
+	"cover": {
+	  "bsonType": "string",
+	  "description": "视频封面"
+	},
     "uploadTime": {
       "bsonType": "timestamp",
       "description": "上传时间"

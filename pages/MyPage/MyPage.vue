@@ -82,7 +82,8 @@ export default {
         memberStatus: 'none', // 会员状态：none-非会员，active-有效会员
         membertype: 'none',   // 会员类型：none-非会员，daily-日卡，monthly-月卡，times-次卡
         usedTrial: false ,    // 是否已使用过试用
-		remainingTimes: 0
+		remainingTimes: 0,
+		cardCategory: 'none'
       }
     }
   },
@@ -99,8 +100,6 @@ export default {
           return 'status-daily';
         case 'monthly':
           return 'status-monthly';
-        case 'times':
-          return 'status-times';
         default:
           return 'status-normal';
       }
@@ -146,7 +145,8 @@ export default {
             'remainingTimes': true,
             'remainingDays': true,
             'usedTrial': true,
-            'memberExpireTime': true
+            'memberExpireTime': true,
+			'cardCategory': true
           })
           .get();
         const userData = result.result.data[0];
@@ -159,7 +159,8 @@ export default {
             membertype: userData.membertype || 'none',
             remainingTimes: userData.remainingTimes || 0,
             remainingDays: userData.remainingDays || 0,
-            usedTrial: userData.usedTrial || false
+            usedTrial: userData.usedTrial || false,
+			cardCategory: userData.cardCategory || 'none'
           };
     
           const userdata = {
@@ -206,20 +207,48 @@ export default {
     },
     // 获取会员状态文本
     getMemberStatusText() {
-      const { memberStatus, membertype, remainingDays, remainingTimes } = this.memberInfo;
-      if (memberStatus !== 'active') return '普通用户';
-      
-      switch(membertype) {
-        case 'daily':
-          return '日卡会员';
-        case 'monthly':
-          return '月卡会员';
-        case 'times':
-          return `次卡会员(${remainingTimes}次)`;
-        default:
-          return '试用会员';
-      }
-    },
+     const { memberStatus, membertype, cardCategory } = this.memberInfo;
+       if (memberStatus === 'active') {
+         // 获取卡类型文本
+         let typeText = '';
+         switch (membertype) {
+           case 'daily':
+             typeText = '日卡';
+             break;
+           case 'monthly':
+             typeText = '月卡';
+             break;
+           case 'times':
+             typeText = '试用卡';
+			 break;
+			default:
+			  return '普通用户'
+         }
+         
+         // 获取卡类别文本
+         let categoryText = '';
+         switch (cardCategory) {
+           case 'streamer':
+             categoryText = '主播卡';
+             break;
+           case 'review':
+             categoryText = '测评卡';
+             break;
+           case 'tutorial':
+             categoryText = '教程卡';
+             break;
+           case 'enterprise':
+             categoryText = '企业卡';
+             break;
+           default:
+             categoryText = '';
+         }
+         
+         // 如果有卡类别，返回"卡类别+卡类型"，否则只返回卡类型
+         return categoryText ? `${categoryText}${typeText}会员` : `${typeText}会员`;
+       }
+       return '普通用户';
+     },
 
     // 格式化过期时间
     formatExpireTime(timestamp) {

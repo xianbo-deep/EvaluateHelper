@@ -68,7 +68,7 @@
           <!-- 视频缩略图 -->
           <view class="video-cover">
             <image 
-              :src="video.thumbnail || '/static/video-placeholder.png'" 
+              :src="video.cover || '/static/video-placeholder.png'" 
               mode="aspectFill"
               class="cover-image"
             ></image>
@@ -163,8 +163,9 @@ export default {
       });
     }
   },
+ 
   
-  onLoad() {
+  onShow() {
 	if(!store.hasLogin){
 		uni.showToast({
 			title: '请先登录',
@@ -173,6 +174,18 @@ export default {
 		uni.switchTab({
 			url:'/pages/MyPage/MyPage'
 		})
+	}
+	const userId = store.userInfo._id;
+	const memberInfo = uni.getStorageSync(`${userId}_memberInfo`);
+	if(memberInfo.cardCategory === 'review'){
+		uni.showToast({
+			title: '您购买的卡密没有权限进入该页面',
+			icon:'none'
+		})
+		uni.switchTab({
+			url:'/pages/MyPage/MyPage'
+		})
+		return ;
 	}
     this.loadCategories();
     this.loadVideoList(true);

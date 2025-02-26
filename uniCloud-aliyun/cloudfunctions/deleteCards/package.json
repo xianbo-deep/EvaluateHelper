@@ -1,0 +1,7 @@
+{
+  "name": "deleteCards",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

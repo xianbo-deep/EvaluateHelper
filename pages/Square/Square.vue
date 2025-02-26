@@ -66,6 +66,7 @@
 </template>
 
 <script>
+import { store } from '/uni_modules/uni-id-pages/common/store.js';		
 export default {
   data() {
     return {
@@ -127,6 +128,29 @@ export default {
         }
       ]
     }
+  },
+  onShow(){
+	if(!store.hasLogin){
+		uni.showToast({
+			title: '请先登录',
+			icon:'none'
+		})
+		uni.switchTab({
+			url:'/pages/MyPage/MyPage'
+		})
+	}
+	const userId = store.userInfo._id;
+	const memberInfo = uni.getStorageSync(`${userId}_memberInfo`);
+	if(memberInfo.cardCategory === 'review' || memberInfo.cardCategory === 'tutorial'){
+		uni.showToast({
+			title: '您购买的卡密没有权限进入该页面',
+			icon:'none'
+		})
+		uni.switchTab({
+			url:'/pages/MyPage/MyPage'
+		})
+		return ;
+	}  
   },
   methods: {
     goToHostDetail(userId) {

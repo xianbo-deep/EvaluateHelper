@@ -5,7 +5,20 @@
       <view class="gradient-orb"></view>
     </view>
 
-    <view class="content">
+    <!-- 加载状态显示 -->
+    <view v-if="isLoading" class="loading-container">
+      <view class="loading-spinner">
+        <view class="spinner-circle"></view>
+      </view>
+      <text class="loading-text">加载中</text>
+    </view>
+
+    <view v-else-if="loadError" class="error-container">
+      <text class="error-text">{{errorMessage}}</text>
+      <button class="retry-button" @tap="retryLoading">重试</button>
+    </view>
+
+    <view v-else class="content">
       <!-- 总分区域 -->
       <view class="score-section">
         <view class="total-score">
@@ -20,6 +33,13 @@
             </view>
           </view>
         </view>
+        
+        <!-- 优化后的评测对象名称 -->
+        <view class="subject-name-container">
+          <view class="subject-label">评测对象</view>
+          <view class="subject-name">{{name}}</view>
+        </view>
+        
         <view class="score-info">
           <view class="score-date">评测时间：{{assessmentTime}}</view>
         </view>
@@ -76,107 +96,142 @@
 import { store } from '/uni_modules/uni-id-pages/common/store.js';
 
 export default {
-    data() {
-        return {
-            metrics: [],
-            evaluationDetails: [],
-            summary: '',
-            assessmentTime: '',
-            totalscore: 0
-        }
-    },
-    async onLoad() {
+  data() {
+    return {
+      metrics: [],
+      evaluationDetails: [],
+      summary: '',
+      assessmentTime: '',
+      totalscore: 0,
+      name: '',
+      isLoading: true,
+      loadError: false,
+      errorMessage: '加载失败，请重试'
+    }
+  },
+  async onLoad() {
+    this.loadData();
+  },
+  onBackPress() {
+    uni.switchTab({
+      url: "/pages/EvaluationHistoryPage/EvaluationHistoryPage",
+    });
+    return true;
+  },
+  methods: {
+    async loadData() {
+      this.isLoading = true;
+      this.loadError = false;
+      
+      try {
         const userId = store.userInfo._id;
+        
+        // 扣减会员次数
         const deductResult = await uniCloud.callFunction({
           name: 'deductMemberTimes',
           data: {
-            userId: store.userInfo._id
+            userId: userId
           }
         });
         
         if (deductResult.result.code !== 0) {
-          return uni.showToast({
-            title: deductResult.result.message || '扣减次数失败',
-            icon: 'none'
-          });
+          throw new Error(deductResult.result.message || '扣减次数失败');
         }
+        
         // 获取存储的评测数据
         const metricsData = uni.getStorageSync(`${userId}_metrics`);
-		const recordId = uni.getStorageSync(`${userId}_recordId`);
-        console.log('原始评测数据:', metricsData);
+        const recordId = uni.getStorageSync(`${userId}_recordId`);
         
-        if (metricsData && metricsData.length > 0) {
-            // 设置总分（计算所有指标的平均分）
-            this.totalscore = uni.getStorageSync(`${userId}_score`);
-            // 格式化指标数据用于显示
-            this.metrics = metricsData.map(m => ({
-                name: m.metricname,
-                score: m.score
-            }));
-            
-            // 格式化详细评价数据 - 直接使用API返回的数据
-            this.evaluationDetails = metricsData.map(m => ({
-                aspect: m.metricname,
-                level: m.description.level,
-                levelText: m.description.level,
-                evaluation: m.description.evaluation, 
-                suggestion: m.description.suggestion
-            }));
-            
-            // 设置评测时间
-            this.assessmentTime = this.formatDate(new Date());
-            
-            // 生成总体评价 - 整合四个指标的评价
-            const totalItem = metricsData.find(m => m.metricId === '总分' || m.metricname === '总体评价');
-            if (totalItem) {
-                // 如果有总分项，直接使用
-                this.summary = totalItem.description.evaluation;
-            } else {
-                // 将所有指标的评价整合为一段总结
-                const majorPoints = metricsData.map(m => {
-                    const aspect = m.metricname;
-                    const key = m.description.evaluation.split('，')[0]; // 取评价的第一部分作为关键点
-                    return `${aspect}：${key}`;
-                }).join('；');
-                
-                // 构建总结性评价
-                this.summary = `总体表现良好，得分${this.totalscore}分。${majorPoints}。建议关注细节描述，增加专业术语，并加强与用户痛点的关联。`;
-            }
-            
-            console.log('处理后的评测数据:', {
-                metrics: this.metrics,
-                details: this.evaluationDetails,
-                totalscore: this.totalscore,
-                summary: this.summary
-            });
+        if (!metricsData || metricsData.length === 0) {
+          throw new Error('未找到评测数据');
+        }
+        
+        // 获取名称
+        const { result } = await uniCloud.database().collection('AssessmentRecord')
+          .where({recordId: recordId})
+          .field('name')
+          .get();
+          
+        if (!result.data || result.data.length === 0) {
+          throw new Error('未找到评测记录');
+        }
+        
+        this.name = result.data[0].name;
+        
+        // 设置总分
+        this.totalscore = uni.getStorageSync(`${userId}_score`);
+        
+        // 格式化指标数据
+        this.metrics = metricsData.map(m => ({
+          name: m.metricname,
+          score: m.score
+        }));
+        
+        // 格式化详细评价数据
+        this.evaluationDetails = metricsData.map(m => ({
+          aspect: m.metricname,
+          level: m.description.level,
+          levelText: m.description.level,
+          evaluation: m.description.evaluation, 
+          suggestion: m.description.suggestion
+        }));
+        
+        // 设置评测时间
+        this.assessmentTime = this.formatDate(new Date());
+        
+        // 生成总体评价
+        const totalItem = metricsData.find(m => m.metricId === '总分' || m.metricname === '总体评价');
+        if (totalItem) {
+          this.summary = totalItem.description.evaluation;
         } else {
-            uni.showToast({
-                title: '未找到评测数据',
-                icon: 'none'
-            });
+          const majorPoints = metricsData.map(m => {
+            const aspect = m.metricname;
+            const key = m.description.evaluation.split('，')[0];
+            return `${aspect}：${key}`;
+          }).join('；');
+          
+          this.summary = `总体表现良好，得分${this.totalscore}分。${majorPoints}。建议关注细节描述，增加专业术语，并加强与用户痛点的关联。`;
         }
-    },
-	onBackPress() {
-	    uni.switchTab({
-	        url: "/pages/EvaluationHistoryPage/EvaluationHistoryPage",
-	    });
-	    return true;
-	},
-    methods: {
-        getScoreColor(score) {
-            if (score >= 90) return '#6366F1';
-            if (score >= 80) return '#8B5CF6';
-            if (score >= 70) return '#EC4899';
-            return '#EF4444';
-        },
         
-        formatDate(date) {
-            const year = date.getFullYear();
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const day = date.getDate().toString().padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
+        console.log('处理后的评测数据:', {
+          metrics: this.metrics,
+          details: this.evaluationDetails,
+          totalscore: this.totalscore,
+          summary: this.summary
+        });
+        
+      } catch (error) {
+        console.error('获取报告详情失败:', error);
+        this.loadError = true;
+        this.errorMessage = error.message || '加载数据失败';
+        
+        uni.showToast({
+          title: this.errorMessage,
+          icon: 'none'
+        });
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    
+    retryLoading() {
+      this.loadData();
+    },
+    
+    getScoreColor(score) {
+      if (score >= 90) return '#6366F1';
+      if (score >= 80) return '#8B5CF6';
+      if (score >= 70) return '#EC4899';
+      return '#EF4444';
+    },
+    
+    formatDate(date) {
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      return `${year}-${month}-${day}`;
     }
+  }
 }
 </script>
 
@@ -229,6 +284,91 @@ export default {
   flex-direction: column;
   padding: 40rpx 30rpx;
   gap: 40rpx;
+}
+
+/* 加载状态样式 */
+.loading-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(248, 250, 252, 0.8);
+  z-index: 10;
+}
+
+.loading-spinner {
+  width: 100rpx;
+  height: 100rpx;
+  position: relative;
+  margin-bottom: 30rpx;
+}
+
+.spinner-circle {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 6rpx solid transparent;
+  border-top-color: #6366F1;
+  border-left-color: #8B5CF6;
+  animation: spin 1.2s linear infinite;
+}
+
+.spinner-circle:before {
+  content: "";
+  position: absolute;
+  top: 5rpx;
+  left: 5rpx;
+  right: 5rpx;
+  bottom: 5rpx;
+  border-radius: 50%;
+  border: 6rpx solid transparent;
+  border-top-color: #8B5CF6;
+  animation: spin 0.8s linear infinite reverse;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #64748B;
+  font-weight: 500;
+}
+
+/* 错误状态样式 */
+.error-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(248, 250, 252, 0.9);
+  z-index: 10;
+  padding: 40rpx;
+}
+
+.error-text {
+  font-size: 30rpx;
+  color: #EF4444;
+  margin-bottom: 40rpx;
+  text-align: center;
+}
+
+.retry-button {
+  background: #6366F1;
+  color: white;
+  border: none;
+  border-radius: 10rpx;
+  padding: 16rpx 36rpx;
+  font-size: 28rpx;
+  font-weight: 500;
 }
 
 /* 总分区域新样式 */
@@ -294,6 +434,49 @@ export default {
   font-weight: 500;
 }
 
+.subject-name-container {
+  margin: 30rpx auto 24rpx;
+  text-align: center;
+  background: #ffffff;
+  border-radius: 12rpx;
+  padding: 16rpx 28rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  max-width: 85%;
+  position: relative;
+  overflow: hidden;
+  border: none;
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* 简化的顶部线条 */
+.subject-name-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2rpx;
+  background: #6366F1;
+}
+
+/* 移除底部装饰 */
+.subject-label {
+  font-size: 22rpx;
+  color: #64748B;
+  margin-bottom: 6rpx;
+  font-weight: 500;
+  display: block;
+}
+
+.subject-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #4F46E5;
+  letter-spacing: 0.5rpx;
+  padding: 2rpx 0;
+  display: block;
+}
+
 .score-info {
   display: flex;
   flex-direction: column;
@@ -306,8 +489,7 @@ export default {
   color: rgba(30, 41, 59, 0.5);
 }
 
-
-/* 其他样式保持不变 */
+/* 其他样式 */
 .metrics-section {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10rpx);
@@ -485,9 +667,11 @@ export default {
 @keyframes fadeIn {
   from {
     opacity: 0;
+    transform: translateY(6rpx);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -512,6 +696,15 @@ export default {
   }
   100% {
     box-shadow: 0 0 40rpx rgba(99, 102, 241, 0.3);
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 </style>

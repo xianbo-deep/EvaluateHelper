@@ -22,7 +22,8 @@ exports.main = async (event, context) => {
         remainingTimes: 1,
 		remainingDays: 1,
 		usedTrial: 1,
-		memberExpireTime: 1
+		memberExpireTime: 1,
+		cardCategory: 1
       })
       .get();
 

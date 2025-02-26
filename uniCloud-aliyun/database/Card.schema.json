@@ -11,8 +11,22 @@
     },
     "cardType": {
       "bsonType": "string",
-      "enum": ["daily", "monthly", "times"],
-      "description": "卡密类型：日卡/月卡/次卡"
+      "enum": [
+        "daily",
+        "monthly"
+      ],
+      "description": "卡密类型：日卡/月卡"
+    },
+    "cardCategory": {
+      "bsonType": "string",
+      "enum": [
+        "streamer",
+        "review",
+        "tutorial",
+        "enterprise"
+      ],
+      "description": "卡类别：主播卡/测评卡/教程卡/企业卡",
+      "default": "enterprise"
     },
     "value": {
       "bsonType": "int",
@@ -20,7 +34,11 @@
     },
     "status": {
       "bsonType": "string",
-      "enum": ["unused", "used", "invalid"],
+      "enum": [
+        "unused",
+        "used",
+        "invalid"
+      ],
       "description": "卡密状态：未使用/已使用/已失效",
       "default": "unused"
     },
@@ -41,6 +59,7 @@
     "cardId",
     "cardCode",
     "cardType",
+    "cardCategory",
     "value",
     "status",
     "createTime"

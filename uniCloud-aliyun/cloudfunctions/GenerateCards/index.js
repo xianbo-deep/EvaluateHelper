@@ -9,17 +9,17 @@ function generateRandomString(length) {
   }
   return result;
 }
+
 // 生成卡号
 function generateCardId() {
   const timestamp = Date.now().toString();
   const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
   return `CARD${timestamp}${random}`;
 }
+
 // 根据卡类型生成卡密
 function generateCardCode(cardType) {
   switch (cardType) {
-    case 'times':
-      return generateRandomString(16);
     case 'daily':
       return generateRandomString(32);
     case 'monthly':
@@ -28,17 +28,37 @@ function generateCardCode(cardType) {
       throw new Error('Invalid card type');
   }
 }
-// 生成指定类型和数量的卡密
-async function generateCards(db, cardType, value, count) {
+
+// 获取卡类别前缀
+function getCategoryPrefix(cardCategory) {
+  switch (cardCategory) {
+    case 'streamer':
+      return 'S';  // 主播卡
+    case 'review':
+      return 'R';  // 测评卡
+    case 'tutorial':
+      return 'T';  // 教程卡
+    case 'enterprise':
+      return 'E';  // 企业卡
+    default:
+      throw new Error('Invalid card category');
+  }
+}
+
+// 生成指定类型、类别和数量的卡密
+async function generateCards(db, cardType, cardCategory, value, count) {
   try {
     const collection = db.collection('Card');
     const cards = [];
     const existingCards = new Set();
     
+    const categoryPrefix = getCategoryPrefix(cardCategory);
+    
     for (let i = 0; i < count; i++) {
       let cardCode;
       do {
-        cardCode = generateCardCode(cardType);
+        // 在卡密前添加类别前缀以便识别
+        cardCode = `${categoryPrefix}-${generateCardCode(cardType)}`;
       } while (existingCards.has(cardCode));
       
       existingCards.add(cardCode);
@@ -47,44 +67,55 @@ async function generateCards(db, cardType, value, count) {
         cardId: generateCardId(),
         cardCode: cardCode,
         cardType: cardType,
+        cardCategory: cardCategory,
         value: value,
         status: 'unused',
         createTime: Date.now()
       });
     }
     
-    const result = await collection.add(cards);
-    console.log(`Generated ${result.insertedCount} ${cardType} cards`);
-    return result.insertedCount;
+    // 分批添加数据，避免一次性添加过多记录
+    const batchSize = 100;
+    let insertedCount = 0;
+    
+    for (let i = 0; i < cards.length; i += batchSize) {
+      const batch = cards.slice(i, i + batchSize);
+      const result = await collection.add(batch);
+      insertedCount += result.insertedCount || batch.length;
+    }
+    
+    console.log(`Generated ${insertedCount} ${cardCategory} ${cardType} cards`);
+    return insertedCount;
   } catch (error) {
-    console.error(`Error generating ${cardType} cards:`, error);
+    console.error(`Error generating ${cardCategory} ${cardType} cards:`, error);
     throw error;
   }
 }
+
 // 检查卡密库存并生成
-async function checkAndGenerateCards(db, cardType) {
+async function checkAndGenerateCards(db, cardType, cardCategory) {
   const collection = db.collection('Card');
   
-  // 获取未使用的卡密数量
+  // 获取未使用的特定类型和类别的卡密数量
   const count = await collection.where({
     cardType: cardType,
+    cardCategory: cardCategory,
     status: 'unused'
   }).count();
   
-  console.log(`${cardType} cards count:`, count.total);
+  console.log(`${cardCategory} ${cardType} cards count:`, count.total);
   
-  // 如果数量少于100，则生成新卡密
-  if (count.total < 100) {
-    const needGenerate = 1000 - count.total; // 补充到1000个
+  // 如果数量少于50，则生成新卡密
+  if (count.total < 50) {
+    const needGenerate = 200 - count.total; // 补充到200个
     
     // 设置不同类型卡密的默认面值
     const defaultValues = {
-      'times': 10,  // 10次
-      'daily': 1,   // 1天
+      'daily': 7,   // 7天
       'monthly': 1  // 1个月
     };
     
-    await generateCards(db, cardType, defaultValues[cardType], needGenerate);
+    await generateCards(db, cardType, cardCategory, defaultValues[cardType], needGenerate);
   }
 }
 
@@ -141,12 +172,21 @@ exports.main = async (event, context) => {
       };
     }
     
-    // 检查所有类型的卡密
-    await Promise.all([
-      checkAndGenerateCards(db, 'times'),
-      checkAndGenerateCards(db, 'daily'),
-      checkAndGenerateCards(db, 'monthly')
-    ]);
+    // 获取所有的卡类型和卡类别
+    const cardTypes = ['daily', 'monthly']; // 移除次卡，只保留日卡和月卡
+    const cardCategories = ['streamer', 'review', 'tutorial', 'enterprise'];
+    
+    // 为每种类型和类别组合检查并生成卡密
+    const tasks = [];
+    
+    for (const cardType of cardTypes) {
+      for (const cardCategory of cardCategories) {
+        tasks.push(checkAndGenerateCards(db, cardType, cardCategory));
+      }
+    }
+    
+    // 并行执行所有检查和生成任务
+    await Promise.all(tasks);
     
     return {
       success: true,

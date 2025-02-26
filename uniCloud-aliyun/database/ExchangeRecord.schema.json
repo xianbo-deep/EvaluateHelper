@@ -29,7 +29,17 @@
     "cardValue": {
       "bsonType": "int",
       "description": "卡密面值：日卡/月卡为天数，次卡为次数"
-    }
+    },
+	"cardCategory": {
+	  "bsonType": "string",
+	  "enum": [
+	    "streamer",
+	    "review",
+	    "tutorial",
+	    "enterprise"
+	  ],
+	  "description": "卡类别：主播卡/测评卡/教程卡/企业卡"
+	}
   },
   "permission": {
     "read": true,

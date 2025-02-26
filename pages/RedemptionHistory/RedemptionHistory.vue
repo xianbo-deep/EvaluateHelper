@@ -21,8 +21,13 @@
           class="record-item"
         >
           <view class="record-header">
-            <view class="card-type-tag" :class="record.cardType">
-              {{ getCardTypeText(record.cardType) }}
+            <view class="card-info">
+              <view class="card-type-tag" :class="record.cardType">
+                {{ getCardTypeText(record.cardType) }}
+              </view>
+              <view class="card-category-tag" :class="record.cardCategory">
+                {{ getCardCategoryText(record.cardCategory) }}
+              </view>
             </view>
             <text class="time">{{ formatTime(record.redeemTime) }}</text>
           </view>
@@ -42,10 +47,8 @@
     </template>
   </view>
 </template>
-
 <script>
 import { store } from '/uni_modules/uni-id-pages/common/store.js'
-
 export default {
   data() {
     return {
@@ -70,9 +73,9 @@ export default {
       this.loading = true
       try {
         const res = await uniCloud.database().collection('ExchangeRecord')
-		.where({userId:store.userInfo._id})
-		.orderBy('redeemTime','desc')
-		.get()
+        .where({userId: store.userInfo._id})
+        .orderBy('redeemTime', 'desc')
+        .get()
         
         if (res.result.data) {
           this.records = res.result.data
@@ -95,21 +98,28 @@ export default {
     
     getCardTypeText(type) {
       const types = {
-        'times': '次卡',
         'daily': '日卡',
         'monthly': '月卡'
       }
       return types[type] || '未知'
     },
     
+    getCardCategoryText(category) {
+      const categories = {
+        'streamer': '主播卡',
+        'review': '测评卡',
+        'tutorial': '教程卡',
+        'enterprise': '企业卡'
+      }
+      return categories[category] || '未知'
+    },
+    
     formatValue(type, value) {
       switch (type) {
-        case 'times':
-          return `${value}次`
         case 'daily':
           return `${value}天`
         case 'monthly':
-          return `${value}个月`  // 月卡也显示天数
+          return `${value}个月`
         default:
           return value
       }

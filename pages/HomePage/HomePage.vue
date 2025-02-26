@@ -122,7 +122,7 @@ export default {
           if (data.membertype === 'times' && data.remainingTimes <= 0) {
             uni.showModal({
               title: '次数已用完',
-              content: '您的测评次数已用完，是否购买新的次数？',
+              content: '您的免费测评次数已用完，是否购买新的会员？',
               success: (res) => {
                 if (res.confirm) {
                   uni.navigateTo({

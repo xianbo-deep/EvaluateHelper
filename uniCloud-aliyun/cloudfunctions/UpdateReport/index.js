@@ -1,6 +1,6 @@
 'use strict';
 exports.main = async (event, context) => {
-    const { userId, recordId, token, metrics,record, score ,duration} = event;
+    const { userId, recordId, token, metrics, record, score, duration } = event;
     
     // 参数验证
     if (!userId || !recordId) {
@@ -30,15 +30,33 @@ exports.main = async (event, context) => {
             })
             .update({
                 totaltoken: token,
-				record: record,
-				score:score,
-				duration:duration
+                record: record,
+                score: score,
+                duration: duration
             });
+            
+        // 修改这里的代码 - 安全地获取nextId
         let nextId = 1;
-        const res = await db.collection('MetricResult').orderBy('resultId',"desc").limit(1).get();
-        if(res.data.length > 0){
-        	nextId = res.data[0].feedbackId + 1;
-        }    
+        const res = await db.collection('MetricResult').orderBy('resultId', "desc").limit(1).get();
+        
+        // 增加详细的日志输出
+        console.log("查询结果:", JSON.stringify(res.data));
+        
+        if (res.data && res.data.length > 0) {
+            const latestRecord = res.data[0];
+            // 检查resultId是否为有效数字
+            if (latestRecord.resultId !== null && 
+                latestRecord.resultId !== undefined && 
+                !isNaN(Number(latestRecord.resultId))) {
+                
+                nextId = Number(latestRecord.resultId) + 1;
+            } else {
+                console.log("警告: 最新记录的resultId无效:", latestRecord.resultId);
+            }
+        }
+        
+        console.log("使用的nextId:", nextId);
+        
         // 直接使用前端传来的处理好的metrics数组
         await db.collection('MetricResult')
             .add({
@@ -46,7 +64,7 @@ exports.main = async (event, context) => {
                 recordId: recordId,
                 evaluationTime: Date.now(),
                 metrics: metrics, // 直接使用，不再需要解析
-				resultId: nextId
+                resultId: nextId
             });
             
         return {

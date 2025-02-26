@@ -242,9 +242,9 @@ if (uni.restoreGlobal) {
       }
     },
     {
-      path: "pages/register/register",
+      path: "pages/videodetail/videodetail",
       style: {
-        navigationBarTitleText: "注册"
+        navigationBarTitleText: "视频详情"
       }
     },
     {
@@ -781,7 +781,7 @@ if (uni.restoreGlobal) {
   function T(e2) {
     return e2 && "string" == typeof e2 ? JSON.parse(e2) : e2;
   }
-  const b = true, E = "app", P = T(define_process_env_UNI_SECURE_NETWORK_CONFIG_default), C = E, A = T('{"address":["127.0.0.1","192.168.3.1","192.168.88.1","192.168.3.17"],"servePort":7001,"debugPort":9001,"initialLaunchType":"remote","skipFiles":["<node_internals>/**","C:/Users/86135/Downloads/HBuilderX.4.29.2024093009 (1)/HBuilderX/plugins/unicloud/**/*.js"]}'), O = T('[{"provider":"aliyun","spaceName":"live-evaluation","spaceId":"mp-81416d5f-745f-4b4d-b014-f7bbbe8b5d7d","clientSecret":"9z2S1yRx6KUG2CHIPOCdHg==","endpoint":"https://api.next.bspapp.com"}]') || [];
+  const b = true, E = "app", P = T(define_process_env_UNI_SECURE_NETWORK_CONFIG_default), C = E, A = T('{"address":["127.0.0.1","192.168.3.17","192.168.3.1","192.168.88.1"],"servePort":7000,"debugPort":9000,"initialLaunchType":"remote","skipFiles":["<node_internals>/**","C:/Users/86135/Downloads/HBuilderX.4.29.2024093009 (1)/HBuilderX/plugins/unicloud/**/*.js"]}'), O = T('[{"provider":"aliyun","spaceName":"live-evaluation","spaceId":"mp-81416d5f-745f-4b4d-b014-f7bbbe8b5d7d","clientSecret":"9z2S1yRx6KUG2CHIPOCdHg==","endpoint":"https://api.next.bspapp.com"}]') || [];
   let N = "";
   try {
     N = "__UNI__0CEE0D3";
@@ -3558,7 +3558,7 @@ ${o3}
             if (data2.membertype === "times" && data2.remainingTimes <= 0) {
               uni.showModal({
                 title: "次数已用完",
-                content: "您的测评次数已用完，是否购买新的次数？",
+                content: "您的免费测评次数已用完，是否购买新的会员？",
                 success: (res2) => {
                   if (res2.confirm) {
                     uni.navigateTo({
@@ -3903,7 +3903,8 @@ ${o3}
           // 会员类型：none-非会员，daily-日卡，monthly-月卡，times-次卡
           usedTrial: false,
           // 是否已使用过试用
-          remainingTimes: 0
+          remainingTimes: 0,
+          cardCategory: "none"
         }
       };
     },
@@ -3920,8 +3921,6 @@ ${o3}
             return "status-daily";
           case "monthly":
             return "status-monthly";
-          case "times":
-            return "status-times";
           default:
             return "status-normal";
         }
@@ -3960,7 +3959,8 @@ ${o3}
             "remainingTimes": true,
             "remainingDays": true,
             "usedTrial": true,
-            "memberExpireTime": true
+            "memberExpireTime": true,
+            "cardCategory": true
           }).get();
           const userData = result.result.data[0];
           if (userData) {
@@ -3971,7 +3971,8 @@ ${o3}
               membertype: userData.membertype || "none",
               remainingTimes: userData.remainingTimes || 0,
               remainingDays: userData.remainingDays || 0,
-              usedTrial: userData.usedTrial || false
+              usedTrial: userData.usedTrial || false,
+              cardCategory: userData.cardCategory || "none"
             };
             const userdata = {
               nickname: userData.nickname,
@@ -3999,7 +4000,7 @@ ${o3}
             throw new Error("未找到用户数据");
           }
         } catch (err2) {
-          formatAppLog("error", "at pages/MyPage/MyPage.vue:198", "加载用户数据失败:", err2);
+          formatAppLog("error", "at pages/MyPage/MyPage.vue:199", "加载用户数据失败:", err2);
           uni.showToast({
             title: "加载用户数据失败",
             icon: "none"
@@ -4010,19 +4011,42 @@ ${o3}
       },
       // 获取会员状态文本
       getMemberStatusText() {
-        const { memberStatus, membertype, remainingDays, remainingTimes } = this.memberInfo;
-        if (memberStatus !== "active")
-          return "普通用户";
-        switch (membertype) {
-          case "daily":
-            return "日卡会员";
-          case "monthly":
-            return "月卡会员";
-          case "times":
-            return `次卡会员(${remainingTimes}次)`;
-          default:
-            return "试用会员";
+        const { memberStatus, membertype, cardCategory } = this.memberInfo;
+        if (memberStatus === "active") {
+          let typeText = "";
+          switch (membertype) {
+            case "daily":
+              typeText = "日卡";
+              break;
+            case "monthly":
+              typeText = "月卡";
+              break;
+            case "times":
+              typeText = "试用卡";
+              break;
+            default:
+              return "普通用户";
+          }
+          let categoryText = "";
+          switch (cardCategory) {
+            case "streamer":
+              categoryText = "主播卡";
+              break;
+            case "review":
+              categoryText = "测评卡";
+              break;
+            case "tutorial":
+              categoryText = "教程卡";
+              break;
+            case "enterprise":
+              categoryText = "企业卡";
+              break;
+            default:
+              categoryText = "";
+          }
+          return categoryText ? `${categoryText}${typeText}会员` : `${typeText}会员`;
         }
+        return "普通用户";
       },
       // 格式化过期时间
       formatExpireTime(timestamp) {
@@ -4108,7 +4132,7 @@ ${o3}
                   });
                 },
                 fail: (err2) => {
-                  formatAppLog("error", "at pages/MyPage/MyPage.vue:322", "清除本地缓存失败:", err2);
+                  formatAppLog("error", "at pages/MyPage/MyPage.vue:351", "清除本地缓存失败:", err2);
                   uni.showToast({
                     title: "注销失败，请稍后重试",
                     icon: "none"
@@ -4903,9 +4927,11 @@ ${o3}
   const _sfc_main$R = {
     data() {
       return {
+        recordId: "",
         loading: true,
         error: false,
         errorMessage: "",
+        name: "",
         reportData: {
           score: 0,
           assessmentTime: "",
@@ -4920,6 +4946,7 @@ ${o3}
         this.handleError("记录ID不存在");
         return;
       }
+      this.recordId = option.recordId;
       this.fetchReportData(option.recordId);
     },
     methods: {
@@ -4930,22 +4957,24 @@ ${o3}
           if (!store.hasLogin) {
             throw new Error("请先登录");
           }
+          const { result } = await er.database().collection("AssessmentRecord").where({ recordId: Number(recordId) }).field("name").get();
+          this.name = result.data[0].name;
           const userId = store.userInfo._id;
-          formatAppLog("log", "at pages/details/details.vue:139", userId);
+          formatAppLog("log", "at pages/details/details.vue:152", userId);
           const res = await er.callFunction({
             name: "Getdetails",
             data: { userId, recordId }
           });
-          formatAppLog("log", "at pages/details/details.vue:145", "完整响应:", res);
-          formatAppLog("log", "at pages/details/details.vue:146", "result:", res.result);
-          formatAppLog("log", "at pages/details/details.vue:147", "data:", res.result.data);
+          formatAppLog("log", "at pages/details/details.vue:158", "完整响应:", res);
+          formatAppLog("log", "at pages/details/details.vue:159", "result:", res.result);
+          formatAppLog("log", "at pages/details/details.vue:160", "data:", res.result.data);
           if (!res.result.success) {
             throw new Error(res.result.message || "获取数据失败");
           }
           this.reportData = this.formatReportData(res.result.data);
-          formatAppLog("log", "at pages/details/details.vue:154", this.reportData.metrics);
+          formatAppLog("log", "at pages/details/details.vue:167", this.reportData.metrics);
         } catch (error) {
-          formatAppLog("error", "at pages/details/details.vue:156", "获取报告详情失败:", error);
+          formatAppLog("error", "at pages/details/details.vue:169", "获取报告详情失败:", error);
           this.handleError(error.message);
         } finally {
           this.loading = false;
@@ -4985,6 +5014,11 @@ ${o3}
         const currentPage = pages2[pages2.length - 1];
         const options = currentPage.options;
         this.fetchReportData(options.recordId);
+      },
+      gotovideodetails() {
+        uni.navigateTo({
+          url: `/pages/videodetail/videodetail?id=${this.recordId}`
+        });
       }
     }
   };
@@ -5039,6 +5073,16 @@ ${o3}
               ])
             ])
           ]),
+          vue.createElementVNode("view", { class: "subject-name-container" }, [
+            vue.createElementVNode("view", { class: "subject-label" }, "评测对象"),
+            vue.createElementVNode(
+              "view",
+              { class: "subject-name" },
+              vue.toDisplayString($data.name),
+              1
+              /* TEXT */
+            )
+          ]),
           vue.createElementVNode("view", { class: "score-info" }, [
             vue.createElementVNode(
               "view",
@@ -5056,6 +5100,10 @@ ${o3}
             )
           ])
         ]),
+        vue.createElementVNode("view", {
+          class: "video-details",
+          onClick: _cache[1] || (_cache[1] = (...args) => $options.gotovideodetails && $options.gotovideodetails(...args))
+        }, " 视频详情 "),
         vue.createCommentVNode(" 分项指标评分 "),
         vue.createElementVNode("view", { class: "metrics-section" }, [
           vue.createElementVNode("view", { class: "section-title" }, "能力指标"),
@@ -7206,6 +7254,7 @@ ${o3}
         pageLoading: true,
         // 添加页面加载状态
         loading: false,
+        selectedCardType: "none",
         memberInfo: {
           memberStatus: "none",
           // 会员状态：none-非会员，active-有效会员
@@ -7215,6 +7264,7 @@ ${o3}
           // 剩余次数（次卡用）
           remainingDays: 0,
           // 剩余天数（日卡/月卡用）
+          cardCategory: "none",
           usedTrial: false,
           // 是否已使用过试用
           memberExpireTime: ""
@@ -7247,9 +7297,9 @@ ${o3}
             }
             this.memberInfo = res.result.data;
           }
-          formatAppLog("log", "at pages/Card/Card.vue:142", res.result.data);
+          formatAppLog("log", "at pages/Card/Card.vue:149", res.result.data);
         } catch (error) {
-          formatAppLog("error", "at pages/Card/Card.vue:144", "加载会员信息失败:", error);
+          formatAppLog("error", "at pages/Card/Card.vue:151", "加载会员信息失败:", error);
           uni.showToast({
             title: "加载会员信息失败",
             icon: "none"
@@ -7257,6 +7307,9 @@ ${o3}
         } finally {
           this.pageLoading = false;
         }
+      },
+      selectCardType(type) {
+        this.selectedCardType = type;
       },
       // 处理输入变化
       onInputChange() {
@@ -7274,7 +7327,8 @@ ${o3}
             data: {
               userId: store.userInfo._id,
               cardNumber: this.cardNumber,
-              cardPassword: this.cardPassword
+              cardPassword: this.cardPassword,
+              cardCategory: this.selectedCardType
             }
           });
           if (result.code === 0) {
@@ -7300,7 +7354,7 @@ ${o3}
             });
           }
         } catch (error) {
-          formatAppLog("error", "at pages/Card/Card.vue:199", "激活失败:", error);
+          formatAppLog("error", "at pages/Card/Card.vue:210", "激活失败:", error);
           uni.showToast({
             title: "激活失败，请重试",
             icon: "none"
@@ -7334,7 +7388,7 @@ ${o3}
             });
           }
         } catch (error) {
-          formatAppLog("error", "at pages/Card/Card.vue:235", "激活免费体验失败:", error);
+          formatAppLog("error", "at pages/Card/Card.vue:246", "激活免费体验失败:", error);
           uni.showToast({
             title: "激活失败，请重试",
             icon: "none"
@@ -7345,18 +7399,40 @@ ${o3}
       },
       // 获取会员状态文本
       getMemberStatusText() {
-        const { memberStatus, membertype } = this.memberInfo;
+        const { memberStatus, membertype, cardCategory } = this.memberInfo;
         if (memberStatus === "active") {
+          let typeText = "";
           switch (membertype) {
             case "daily":
-              return "日卡会员";
+              typeText = "日卡";
+              break;
             case "monthly":
-              return "月卡会员";
+              typeText = "月卡";
+              break;
             case "times":
-              return "次卡会员";
+              typeText = "试用卡";
+              break;
             default:
-              return "试用会员";
+              return "普通用户";
           }
+          let categoryText = "";
+          switch (cardCategory) {
+            case "streamer":
+              categoryText = "主播卡";
+              break;
+            case "review":
+              categoryText = "测评卡";
+              break;
+            case "tutorial":
+              categoryText = "教程卡";
+              break;
+            case "enterprise":
+              categoryText = "企业卡";
+              break;
+            default:
+              categoryText = "";
+          }
+          return categoryText ? `${categoryText}${typeText}会员` : `${typeText}会员`;
         }
         return "普通用户";
       },
@@ -7465,6 +7541,48 @@ ${o3}
               onClick: _cache[0] || (_cache[0] = (...args) => $options.handleFreeTrial && $options.handleFreeTrial(...args))
             }, "立即体验")
           ])) : vue.createCommentVNode("v-if", true),
+          vue.createElementVNode("view", { class: "card-category" }, [
+            vue.createElementVNode(
+              "button",
+              {
+                class: vue.normalizeClass({ "active": $data.selectedCardType === "review" }),
+                onClick: _cache[1] || (_cache[1] = ($event) => $options.selectCardType("review"))
+              },
+              "测评卡",
+              2
+              /* CLASS */
+            ),
+            vue.createElementVNode(
+              "button",
+              {
+                class: vue.normalizeClass({ "active": $data.selectedCardType === "tutorial" }),
+                onClick: _cache[2] || (_cache[2] = ($event) => $options.selectCardType("tutorial"))
+              },
+              "教程卡",
+              2
+              /* CLASS */
+            ),
+            vue.createElementVNode(
+              "button",
+              {
+                class: vue.normalizeClass({ "active": $data.selectedCardType === "streamer" }),
+                onClick: _cache[3] || (_cache[3] = ($event) => $options.selectCardType("streamer"))
+              },
+              "主播卡",
+              2
+              /* CLASS */
+            ),
+            vue.createElementVNode(
+              "button",
+              {
+                class: vue.normalizeClass({ "active": $data.selectedCardType === "enterprise" }),
+                onClick: _cache[4] || (_cache[4] = ($event) => $options.selectCardType("enterprise"))
+              },
+              "企业卡",
+              2
+              /* CLASS */
+            )
+          ]),
           vue.createCommentVNode(" 卡密输入区域 "),
           vue.createElementVNode("view", { class: "input-section" }, [
             vue.createElementVNode("view", { class: "input-group" }, [
@@ -7474,9 +7592,9 @@ ${o3}
                 {
                   class: "input-field",
                   type: "text",
-                  "onUpdate:modelValue": _cache[1] || (_cache[1] = ($event) => $data.cardNumber = $event),
+                  "onUpdate:modelValue": _cache[5] || (_cache[5] = ($event) => $data.cardNumber = $event),
                   placeholder: "请输入卡号",
-                  onInput: _cache[2] || (_cache[2] = (...args) => $options.onInputChange && $options.onInputChange(...args))
+                  onInput: _cache[6] || (_cache[6] = (...args) => $options.onInputChange && $options.onInputChange(...args))
                 },
                 null,
                 544
@@ -7492,9 +7610,9 @@ ${o3}
                 {
                   class: "input-field",
                   type: "text",
-                  "onUpdate:modelValue": _cache[3] || (_cache[3] = ($event) => $data.cardPassword = $event),
+                  "onUpdate:modelValue": _cache[7] || (_cache[7] = ($event) => $data.cardPassword = $event),
                   placeholder: "请输入卡密",
-                  onInput: _cache[4] || (_cache[4] = (...args) => $options.onInputChange && $options.onInputChange(...args))
+                  onInput: _cache[8] || (_cache[8] = (...args) => $options.onInputChange && $options.onInputChange(...args))
                 },
                 null,
                 544
@@ -7508,14 +7626,14 @@ ${o3}
           vue.createElementVNode("button", {
             class: "activate-btn",
             disabled: !$data.isValid || $data.loading,
-            onClick: _cache[5] || (_cache[5] = (...args) => $options.handleActivate && $options.handleActivate(...args))
+            onClick: _cache[9] || (_cache[9] = (...args) => $options.handleActivate && $options.handleActivate(...args))
           }, vue.toDisplayString($data.loading ? "激活中..." : "立即激活"), 9, ["disabled"]),
           vue.createCommentVNode(" 使用说明 "),
           vue.createElementVNode("view", { class: "instructions" }, [
             vue.createElementVNode("view", { class: "instruction-title" }, "使用说明"),
             vue.createElementVNode("view", { class: "instruction-item" }, "1. 请确保输入的卡号和卡密正确"),
             vue.createElementVNode("view", { class: "instruction-item" }, "2. 卡密激活后即时生效"),
-            vue.createElementVNode("view", { class: "instruction-item" }, "3. 当前会员未过期时激活新卡密，有效期将自动叠加(次卡与日卡月卡不可叠加)"),
+            vue.createElementVNode("view", { class: "instruction-item" }, "3. 当前会员未过期时激活新卡密，有效期将自动叠加"),
             vue.createElementVNode("view", { class: "instruction-item" }, "4. 如遇到问题请提交反馈")
           ])
         ],
@@ -7555,7 +7673,7 @@ ${o3}
             });
           }
         } catch (error) {
-          formatAppLog("error", "at pages/RedemptionHistory/RedemptionHistory.vue:86", "加载记录失败:", error);
+          formatAppLog("error", "at pages/RedemptionHistory/RedemptionHistory.vue:89", "加载记录失败:", error);
           uni.showToast({
             title: "加载失败，请重试",
             icon: "none"
@@ -7566,16 +7684,22 @@ ${o3}
       },
       getCardTypeText(type) {
         const types2 = {
-          "times": "次卡",
           "daily": "日卡",
           "monthly": "月卡"
         };
         return types2[type] || "未知";
       },
+      getCardCategoryText(category) {
+        const categories = {
+          "streamer": "主播卡",
+          "review": "测评卡",
+          "tutorial": "教程卡",
+          "enterprise": "企业卡"
+        };
+        return categories[category] || "未知";
+      },
       formatValue(type, value) {
         switch (type) {
-          case "times":
-            return `${value}次`;
           case "daily":
             return `${value}天`;
           case "monthly":
@@ -7629,15 +7753,26 @@ ${o3}
                       class: "record-item"
                     }, [
                       vue.createElementVNode("view", { class: "record-header" }, [
-                        vue.createElementVNode(
-                          "view",
-                          {
-                            class: vue.normalizeClass(["card-type-tag", record.cardType])
-                          },
-                          vue.toDisplayString($options.getCardTypeText(record.cardType)),
-                          3
-                          /* TEXT, CLASS */
-                        ),
+                        vue.createElementVNode("view", { class: "card-info" }, [
+                          vue.createElementVNode(
+                            "view",
+                            {
+                              class: vue.normalizeClass(["card-type-tag", record.cardType])
+                            },
+                            vue.toDisplayString($options.getCardTypeText(record.cardType)),
+                            3
+                            /* TEXT, CLASS */
+                          ),
+                          vue.createElementVNode(
+                            "view",
+                            {
+                              class: vue.normalizeClass(["card-category-tag", record.cardCategory])
+                            },
+                            vue.toDisplayString($options.getCardCategoryText(record.cardCategory)),
+                            3
+                            /* TEXT, CLASS */
+                          )
+                        ]),
                         vue.createElementVNode(
                           "text",
                           { class: "time" },
@@ -7685,16 +7820,117 @@ ${o3}
     ]);
   }
   const PagesRedemptionHistoryRedemptionHistory = /* @__PURE__ */ _export_sfc(_sfc_main$K, [["render", _sfc_render$J], ["__file", "C:/Evaluate/EvaluateProject/pages/RedemptionHistory/RedemptionHistory.vue"]]);
+  const _imports_0$3 = "/static/video-poster.png";
   const _sfc_main$J = {
     data() {
-      return {};
+      return {
+        recordId: "",
+        videoUrl: "",
+        isLoading: true,
+        errorMessage: "",
+        retryCount: 0
+      };
     },
-    methods: {}
+    onLoad(options) {
+      formatAppLog("log", "at pages/videodetail/videodetail.vue:36", "视频ID:", options.id);
+      if (!options.id) {
+        this.errorMessage = "无效的视频ID";
+        this.isLoading = false;
+        return;
+      }
+      this.recordId = options.id;
+      this.fetchVideo(this.recordId);
+    },
+    methods: {
+      async fetchVideo(recordId) {
+        this.isLoading = true;
+        this.errorMessage = "";
+        try {
+          const result = await er.database().collection("AssessmentRecord").where({ recordId: Number(recordId) }).field("fileId").get();
+          if (result.result && result.result.data && result.result.data.length > 0) {
+            const fileId = result.result.data[0].fileId;
+            if (!fileId) {
+              throw new Error("未找到视频文件ID");
+            }
+            const res = await er.database().collection("FileStorage").where({ fileId: Number(fileId) }).field("fileUrl").get();
+            if (res.result && res.result.data && res.result.data.length > 0) {
+              this.videoUrl = res.result.data[0].fileUrl;
+              if (!this.videoUrl) {
+                throw new Error("视频URL为空");
+              }
+            } else {
+              throw new Error("未找到视频文件信息");
+            }
+          } else {
+            throw new Error("未找到相关记录");
+          }
+        } catch (error) {
+          formatAppLog("error", "at pages/videodetail/videodetail.vue:85", "视频获取失败:", error);
+          this.errorMessage = error.message || "视频获取失败";
+          this.videoUrl = "";
+        } finally {
+          this.isLoading = false;
+        }
+      },
+      handleVideoError(error) {
+        formatAppLog("error", "at pages/videodetail/videodetail.vue:93", "视频播放错误:", error);
+        this.errorMessage = "视频播放失败，请检查网络连接";
+        this.videoUrl = "";
+      },
+      retryFetch() {
+        if (this.retryCount < 3) {
+          this.retryCount++;
+          this.fetchVideo(this.recordId);
+        } else {
+          uni.showToast({
+            title: "多次尝试失败，请稍后再试",
+            icon: "none"
+          });
+        }
+      }
+    }
   };
   function _sfc_render$I(_ctx, _cache, $props, $setup, $data, $options) {
-    return vue.openBlock(), vue.createElementBlock("view");
+    return vue.openBlock(), vue.createElementBlock("view", { class: "container" }, [
+      $data.videoUrl ? (vue.openBlock(), vue.createElementBlock("view", {
+        key: 0,
+        class: "video-container"
+      }, [
+        vue.createElementVNode("video", {
+          src: $data.videoUrl,
+          autoplay: "",
+          controls: "",
+          poster: _imports_0$3,
+          "object-fit": "contain",
+          onError: _cache[0] || (_cache[0] = (...args) => $options.handleVideoError && $options.handleVideoError(...args)),
+          class: "video-player"
+        }, null, 40, ["src"])
+      ])) : $data.isLoading ? (vue.openBlock(), vue.createElementBlock("view", {
+        key: 1,
+        class: "loading-container"
+      }, [
+        vue.createElementVNode("text", { class: "loading-text" }, "视频加载中...")
+      ])) : (vue.openBlock(), vue.createElementBlock("view", {
+        key: 2,
+        class: "error-container"
+      }, [
+        vue.createElementVNode(
+          "text",
+          { class: "error-text" },
+          vue.toDisplayString($data.errorMessage || "视频获取失败，请稍后重试"),
+          1
+          /* TEXT */
+        ),
+        vue.createElementVNode("button", {
+          type: "primary",
+          size: "mini",
+          onClick: _cache[1] || (_cache[1] = (...args) => $options.retryFetch && $options.retryFetch(...args)),
+          class: "retry-btn"
+        }, "重试")
+      ]))
+    ]);
   }
-  const PagesRegisterRegister = /* @__PURE__ */ _export_sfc(_sfc_main$J, [["render", _sfc_render$I], ["__file", "C:/Evaluate/EvaluateProject/pages/register/register.vue"]]);
+  const PagesVideodetailVideodetail = /* @__PURE__ */ _export_sfc(_sfc_main$J, [["render", _sfc_render$I], ["__file", "C:/Evaluate/EvaluateProject/pages/videodetail/videodetail.vue"]]);
   let mediaQueryObserver;
   const _sfc_main$I = {
     name: "UniMatchMedia",
@@ -16734,63 +16970,15 @@ ${o3}
         evaluationDetails: [],
         summary: "",
         assessmentTime: "",
-        totalscore: 0
+        totalscore: 0,
+        name: "",
+        isLoading: true,
+        loadError: false,
+        errorMessage: "加载失败，请重试"
       };
     },
     async onLoad() {
-      const userId = store.userInfo._id;
-      const deductResult = await er.callFunction({
-        name: "deductMemberTimes",
-        data: {
-          userId: store.userInfo._id
-        }
-      });
-      if (deductResult.result.code !== 0) {
-        return uni.showToast({
-          title: deductResult.result.message || "扣减次数失败",
-          icon: "none"
-        });
-      }
-      const metricsData = uni.getStorageSync(`${userId}_metrics`);
-      uni.getStorageSync(`${userId}_recordId`);
-      formatAppLog("log", "at pages/Report/Report.vue:106", "原始评测数据:", metricsData);
-      if (metricsData && metricsData.length > 0) {
-        this.totalscore = uni.getStorageSync(`${userId}_score`);
-        this.metrics = metricsData.map((m2) => ({
-          name: m2.metricname,
-          score: m2.score
-        }));
-        this.evaluationDetails = metricsData.map((m2) => ({
-          aspect: m2.metricname,
-          level: m2.description.level,
-          levelText: m2.description.level,
-          evaluation: m2.description.evaluation,
-          suggestion: m2.description.suggestion
-        }));
-        this.assessmentTime = this.formatDate(/* @__PURE__ */ new Date());
-        const totalItem = metricsData.find((m2) => m2.metricId === "总分" || m2.metricname === "总体评价");
-        if (totalItem) {
-          this.summary = totalItem.description.evaluation;
-        } else {
-          const majorPoints = metricsData.map((m2) => {
-            const aspect = m2.metricname;
-            const key = m2.description.evaluation.split("，")[0];
-            return `${aspect}：${key}`;
-          }).join("；");
-          this.summary = `总体表现良好，得分${this.totalscore}分。${majorPoints}。建议关注细节描述，增加专业术语，并加强与用户痛点的关联。`;
-        }
-        formatAppLog("log", "at pages/Report/Report.vue:146", "处理后的评测数据:", {
-          metrics: this.metrics,
-          details: this.evaluationDetails,
-          totalscore: this.totalscore,
-          summary: this.summary
-        });
-      } else {
-        uni.showToast({
-          title: "未找到评测数据",
-          icon: "none"
-        });
-      }
+      this.loadData();
     },
     onBackPress() {
       uni.switchTab({
@@ -16799,6 +16987,75 @@ ${o3}
       return true;
     },
     methods: {
+      async loadData() {
+        this.isLoading = true;
+        this.loadError = false;
+        try {
+          const userId = store.userInfo._id;
+          const deductResult = await er.callFunction({
+            name: "deductMemberTimes",
+            data: {
+              userId
+            }
+          });
+          if (deductResult.result.code !== 0) {
+            throw new Error(deductResult.result.message || "扣减次数失败");
+          }
+          const metricsData = uni.getStorageSync(`${userId}_metrics`);
+          const recordId = uni.getStorageSync(`${userId}_recordId`);
+          if (!metricsData || metricsData.length === 0) {
+            throw new Error("未找到评测数据");
+          }
+          const { result } = await er.database().collection("AssessmentRecord").where({ recordId }).field("name").get();
+          if (!result.data || result.data.length === 0) {
+            throw new Error("未找到评测记录");
+          }
+          this.name = result.data[0].name;
+          this.totalscore = uni.getStorageSync(`${userId}_score`);
+          this.metrics = metricsData.map((m2) => ({
+            name: m2.metricname,
+            score: m2.score
+          }));
+          this.evaluationDetails = metricsData.map((m2) => ({
+            aspect: m2.metricname,
+            level: m2.description.level,
+            levelText: m2.description.level,
+            evaluation: m2.description.evaluation,
+            suggestion: m2.description.suggestion
+          }));
+          this.assessmentTime = this.formatDate(/* @__PURE__ */ new Date());
+          const totalItem = metricsData.find((m2) => m2.metricId === "总分" || m2.metricname === "总体评价");
+          if (totalItem) {
+            this.summary = totalItem.description.evaluation;
+          } else {
+            const majorPoints = metricsData.map((m2) => {
+              const aspect = m2.metricname;
+              const key = m2.description.evaluation.split("，")[0];
+              return `${aspect}：${key}`;
+            }).join("；");
+            this.summary = `总体表现良好，得分${this.totalscore}分。${majorPoints}。建议关注细节描述，增加专业术语，并加强与用户痛点的关联。`;
+          }
+          formatAppLog("log", "at pages/Report/Report.vue:196", "处理后的评测数据:", {
+            metrics: this.metrics,
+            details: this.evaluationDetails,
+            totalscore: this.totalscore,
+            summary: this.summary
+          });
+        } catch (error) {
+          formatAppLog("error", "at pages/Report/Report.vue:204", "获取报告详情失败:", error);
+          this.loadError = true;
+          this.errorMessage = error.message || "加载数据失败";
+          uni.showToast({
+            title: this.errorMessage,
+            icon: "none"
+          });
+        } finally {
+          this.isLoading = false;
+        }
+      },
+      retryLoading() {
+        this.loadData();
+      },
       getScoreColor(score) {
         if (score >= 90)
           return "#6366F1";
@@ -16822,7 +17079,34 @@ ${o3}
         vue.createElementVNode("view", { class: "gradient-orb" }),
         vue.createElementVNode("view", { class: "gradient-orb" })
       ]),
-      vue.createElementVNode("view", { class: "content" }, [
+      vue.createCommentVNode(" 加载状态显示 "),
+      $data.isLoading ? (vue.openBlock(), vue.createElementBlock("view", {
+        key: 0,
+        class: "loading-container"
+      }, [
+        vue.createElementVNode("view", { class: "loading-spinner" }, [
+          vue.createElementVNode("view", { class: "spinner-circle" })
+        ]),
+        vue.createElementVNode("text", { class: "loading-text" }, "加载中")
+      ])) : $data.loadError ? (vue.openBlock(), vue.createElementBlock("view", {
+        key: 1,
+        class: "error-container"
+      }, [
+        vue.createElementVNode(
+          "text",
+          { class: "error-text" },
+          vue.toDisplayString($data.errorMessage),
+          1
+          /* TEXT */
+        ),
+        vue.createElementVNode("button", {
+          class: "retry-button",
+          onClick: _cache[0] || (_cache[0] = (...args) => $options.retryLoading && $options.retryLoading(...args))
+        }, "重试")
+      ])) : (vue.openBlock(), vue.createElementBlock("view", {
+        key: 2,
+        class: "content"
+      }, [
         vue.createCommentVNode(" 总分区域 "),
         vue.createElementVNode("view", { class: "score-section" }, [
           vue.createElementVNode("view", { class: "total-score" }, [
@@ -16842,6 +17126,17 @@ ${o3}
                 ])
               ])
             ])
+          ]),
+          vue.createCommentVNode(" 优化后的评测对象名称 "),
+          vue.createElementVNode("view", { class: "subject-name-container" }, [
+            vue.createElementVNode("view", { class: "subject-label" }, "评测对象"),
+            vue.createElementVNode(
+              "view",
+              { class: "subject-name" },
+              vue.toDisplayString($data.name),
+              1
+              /* TEXT */
+            )
           ]),
           vue.createElementVNode("view", { class: "score-info" }, [
             vue.createElementVNode(
@@ -16969,7 +17264,7 @@ ${o3}
             )
           ])
         ])
-      ])
+      ]))
     ]);
   }
   const PagesReportReport = /* @__PURE__ */ _export_sfc(_sfc_main$7, [["render", _sfc_render$6], ["__file", "C:/Evaluate/EvaluateProject/pages/Report/Report.vue"]]);
@@ -17013,7 +17308,7 @@ ${o3}
         });
       }
     },
-    onLoad() {
+    onShow() {
       if (!store.hasLogin) {
         uni.showToast({
           title: "请先登录",
@@ -17022,6 +17317,18 @@ ${o3}
         uni.switchTab({
           url: "/pages/MyPage/MyPage"
         });
+      }
+      const userId = store.userInfo._id;
+      const memberInfo = uni.getStorageSync(`${userId}_memberInfo`);
+      if (memberInfo.cardCategory === "review") {
+        uni.showToast({
+          title: "您购买的卡密没有权限进入该页面",
+          icon: "none"
+        });
+        uni.switchTab({
+          url: "/pages/MyPage/MyPage"
+        });
+        return;
       }
       this.loadCategories();
       this.loadVideoList(true);
@@ -17046,7 +17353,7 @@ ${o3}
             ];
           }
         } catch (err2) {
-          formatAppLog("warn", "at pages/Instruction/Instruction.vue:207", "获取分类数据失败:", err2);
+          formatAppLog("warn", "at pages/Instruction/Instruction.vue:220", "获取分类数据失败:", err2);
           this.categoryCache = this.getTestCategories();
           this.categories = [
             { id: "all", name: "全部" },
@@ -17095,14 +17402,14 @@ ${o3}
               throw new Error("未获取到视频数据");
             }
           } catch (dbError) {
-            formatAppLog("warn", "at pages/Instruction/Instruction.vue:274", "数据库获取视频列表失败:", dbError);
+            formatAppLog("warn", "at pages/Instruction/Instruction.vue:287", "数据库获取视频列表失败:", dbError);
             if (reset && this.videoList.length === 0) {
               this.videoList = this.getTestVideoData();
               this.hasMore = false;
             }
           }
         } catch (error) {
-          formatAppLog("error", "at pages/Instruction/Instruction.vue:283", "加载视频列表失败:", error);
+          formatAppLog("error", "at pages/Instruction/Instruction.vue:296", "加载视频列表失败:", error);
           this.loadError = "加载失败，请重试";
         } finally {
           this.isLoading = false;
@@ -17345,7 +17652,7 @@ ${o3}
                 vue.createCommentVNode(" 视频缩略图 "),
                 vue.createElementVNode("view", { class: "video-cover" }, [
                   vue.createElementVNode("image", {
-                    src: video.thumbnail || "/static/video-placeholder.png",
+                    src: video.cover || "/static/video-placeholder.png",
                     mode: "aspectFill",
                     class: "cover-image"
                   }, null, 8, ["src"]),
@@ -17900,7 +18207,7 @@ ${o3}
             this.watchedDuration = progress.watchedDuration || 0;
             this.completed = progress.completed || false;
             this.progress = progress.progress || 0;
-            this.lastPosition = progress.lastPosition || 0;
+            this.lastPosition = progress.watchedDuration || 0;
             this.viewCount = progress.viewCount || 1;
             if (this.lastPosition > 0 && !this.completed) {
               this.$nextTick(() => {
@@ -17918,18 +18225,10 @@ ${o3}
         if (!this.videoContext) {
           this.videoContext = uni.createVideoContext("videoPlayer", this);
         }
-        uni.showModal({
-          title: "继续播放",
-          content: `是否从上次观看的位置（${this.formatDuration(this.lastPosition)}）继续播放？`,
-          success: (res) => {
-            if (res.confirm && this.videoContext) {
-              this.videoContext.seek(this.lastPosition);
-              setTimeout(() => {
-                this.videoContext.play();
-              }, 100);
-            }
-          }
-        });
+        this.videoContext.seek(this.lastPosition);
+        setTimeout(() => {
+          this.videoContext.play();
+        }, 100);
       },
       onVideoLoaded() {
         this.isVideoReady = true;
@@ -17984,7 +18283,7 @@ ${o3}
             }
           }
         } catch (error) {
-          formatAppLog("error", "at pages/video/video.vue:278", "保存进度失败:", error);
+          formatAppLog("error", "at pages/video/video.vue:270", "保存进度失败:", error);
         }
       },
       onVideoPlay() {
@@ -18006,7 +18305,7 @@ ${o3}
           db.collection("Video").doc(this.videoId).update({
             completionCount: dbCmd.inc(1)
           }).catch((err2) => {
-            formatAppLog("error", "at pages/video/video.vue:304", "更新视频完成数失败:", err2);
+            formatAppLog("error", "at pages/video/video.vue:296", "更新视频完成数失败:", err2);
           });
         }
         if (this.progressUpdateTimer) {
@@ -18024,7 +18323,7 @@ ${o3}
         }, this.saveInterval);
       },
       handleVideoError(err2) {
-        formatAppLog("error", "at pages/video/video.vue:325", "视频播放错误:", err2);
+        formatAppLog("error", "at pages/video/video.vue:317", "视频播放错误:", err2);
         this.videoError = "视频播放失败，请检查网络连接或视频地址是否有效";
       },
       retryVideo() {
@@ -18038,7 +18337,7 @@ ${o3}
         if (seconds === null || seconds === void 0 || seconds === "") {
           return "00:00";
         }
-        formatAppLog("log", "at pages/video/video.vue:342", seconds);
+        formatAppLog("log", "at pages/video/video.vue:334", seconds);
         seconds = Number(seconds);
         if (isNaN(seconds)) {
           return "00:00";
@@ -18265,6 +18564,29 @@ ${o3}
         ]
       };
     },
+    onShow() {
+      if (!store.hasLogin) {
+        uni.showToast({
+          title: "请先登录",
+          icon: "none"
+        });
+        uni.switchTab({
+          url: "/pages/MyPage/MyPage"
+        });
+      }
+      const userId = store.userInfo._id;
+      const memberInfo = uni.getStorageSync(`${userId}_memberInfo`);
+      if (memberInfo.cardCategory === "review" || memberInfo.cardCategory === "tutorial") {
+        uni.showToast({
+          title: "您购买的卡密没有权限进入该页面",
+          icon: "none"
+        });
+        uni.switchTab({
+          url: "/pages/MyPage/MyPage"
+        });
+        return;
+      }
+    },
     methods: {
       goToHostDetail(userId) {
         uni.navigateTo({
@@ -18449,7 +18771,7 @@ ${o3}
   __definePage("pages/UserData/UserData", PagesUserDataUserData);
   __definePage("pages/Card/Card", PagesCardCard);
   __definePage("pages/RedemptionHistory/RedemptionHistory", PagesRedemptionHistoryRedemptionHistory);
-  __definePage("pages/register/register", PagesRegisterRegister);
+  __definePage("pages/videodetail/videodetail", PagesVideodetailVideodetail);
   __definePage("uni_modules/uni-id-pages/pages/register/register", UniModulesUniIdPagesPagesRegisterRegister);
   __definePage("uni_modules/uni-id-pages/pages/login/login-withoutpwd", UniModulesUniIdPagesPagesLoginLoginWithoutpwd);
   __definePage("uni_modules/uni-id-pages/pages/login/login-withpwd", UniModulesUniIdPagesPagesLoginLoginWithpwd);
